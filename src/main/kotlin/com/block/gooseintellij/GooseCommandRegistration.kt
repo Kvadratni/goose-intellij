@@ -49,7 +49,7 @@ class SendToGooseAction : AnAction() {
 
         if (selectedText != null && selectedText.isNotEmpty() && psiFile != null) {
             val filePath = psiFile.virtualFile.path
-            val command = String.format(GOOSE_COMMAND_FORMAT, filePath, selectedText)
+            val command = String.format(GOOSE_COMMAND_FORMAT, selectedText, filePath)
             gooseTerminalPanel?.processInput(command)
         } else {
             Messages.showMessageDialog("No file or text selected.", "Warning", Messages.getWarningIcon())

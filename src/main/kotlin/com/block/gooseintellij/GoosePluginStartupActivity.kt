@@ -5,15 +5,14 @@ import com.intellij.execution.ExecutionException
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.ide.BrowserUtil
-import com.intellij.notification.NotificationGroupManager
-import com.intellij.notification.NotificationType
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.progress.PerformInBackgroundOption
+import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.wm.ToolWindowManager
-import com.intellij.openapi.progress.ProgressManager
-import com.intellij.openapi.progress.Task
 
 class GoosePluginStartupActivity : ProjectActivity {
     override suspend fun execute(project: Project) {
@@ -26,7 +25,7 @@ class GoosePluginStartupActivity : ProjectActivity {
             val content = contentManager?.getContent(0)
             val gooseTerminalPanel = content?.component as? GooseTerminalPanel
 
-            ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Starting Goose Session") {
+            ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Initializing Goose plugin") {
                 override fun run(indicator: com.intellij.openapi.progress.ProgressIndicator) {
                     if (!canInitializeGoose(false)) {
                         if (!canInitializeGoose(true)) {
@@ -71,15 +70,9 @@ class GoosePluginStartupActivity : ProjectActivity {
     }
 
     private fun startGooseSession(usingSqGoose: Boolean, gooseTerminalPanel: GooseTerminalPanel?) {
-        NotificationGroupManager.getInstance()
-            .getNotificationGroup("Goose Notifications")
-            .createNotification("Goose agent starting, this may take a minute.. \\u23f0", NotificationType.INFORMATION)
-            .notify(null)
-
-        gooseTerminalPanel?.printOutput("Goose is already installed.")
         gooseTerminalPanel?.printOutput("Starting Goose session...")
 
-        ProgressManager.getInstance().run(object : Task.Backgroundable(null, "Starting Goose Session") {
+        ProgressManager.getInstance().run(object : Task.Backgroundable(null, "Running Goose session", true, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
             override fun run(indicator: com.intellij.openapi.progress.ProgressIndicator) {
                 val commandLine = if (usingSqGoose) GeneralCommandLine("sq", "goose", "session", "start")
                                   else GeneralCommandLine("goose", "session", "start")
