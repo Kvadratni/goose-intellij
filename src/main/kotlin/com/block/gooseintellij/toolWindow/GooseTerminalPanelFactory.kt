@@ -1,6 +1,5 @@
 package com.block.gooseintellij.toolWindow
 
-import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.impl.ConsoleViewImpl
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.execution.process.ProcessHandler
@@ -8,12 +7,12 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.content.ContentFactory
+import com.intellij.openapi.util.Disposer
+import com.intellij.ui.components.JBScrollPane
 import java.awt.BorderLayout
 import java.awt.event.ActionEvent
 import java.awt.event.ActionListener
-import javax.swing.JScrollPane
 import javax.swing.JTextField
-import com.intellij.openapi.util.Disposer
 import java.io.IOException
 
 class GooseTerminalPanelFactory : ToolWindowFactory {
@@ -35,7 +34,8 @@ class GooseTerminalPanel(toolWindow: ToolWindow) : javax.swing.JPanel() {
         val disposable = Disposer.newDisposable()
         Disposer.register(toolWindow.project, disposable)
         Disposer.register(disposable, consoleView)
-        val scrollPane = JScrollPane(consoleView.component)
+        consoleView.setSize(800, consoleView.height)
+        val scrollPane = JBScrollPane(consoleView.component)
 
         add(scrollPane, BorderLayout.CENTER)
         add(inputField, BorderLayout.SOUTH)
@@ -67,12 +67,11 @@ class GooseTerminalPanel(toolWindow: ToolWindow) : javax.swing.JPanel() {
 
     fun processInput(input: String) {
         try {
-            // Print local echo of the input
-            printOutput("> $input")
             if (this.processHandler?.processInput != null) {
                 this.processHandler!!.processInput.apply {
                     write((input + "\n").toByteArray())
                     flush()
+                    scrollToBottom()
                 }
             } else {
                 printOutput("Process input stream is unavailable")
@@ -84,6 +83,11 @@ class GooseTerminalPanel(toolWindow: ToolWindow) : javax.swing.JPanel() {
 
     fun printOutput(text: String) {
         consoleView.print(text + "\n", com.intellij.execution.ui.ConsoleViewContentType.NORMAL_OUTPUT)
+        scrollToBottom()
         println("Printed to terminal: $text")
+    }
+
+    private fun scrollToBottom() {
+        consoleView.scrollTo(consoleView.contentSize)
     }
 }

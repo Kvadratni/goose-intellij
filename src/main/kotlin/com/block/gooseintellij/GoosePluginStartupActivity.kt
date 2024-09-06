@@ -1,5 +1,6 @@
 package com.block.gooseintellij
 
+import com.block.gooseintellij.toolWindow.GooseTerminalPanel
 import com.intellij.execution.ExecutionException
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
@@ -13,7 +14,6 @@ import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
-import com.block.gooseintellij.toolWindow.GooseTerminalPanel
 
 class GoosePluginStartupActivity : ProjectActivity {
     override suspend fun execute(project: Project) {

@@ -11,19 +11,22 @@
   <actions>
     <action id="com.block.gooseintellij.SendToGooseAction"
             class="com.block.gooseintellij.SendToGooseAction"
-            text="Ask Goose About This">
+            text="Ask Goose About This" icon="com.block.gooseintellij.GooseIcons.GooseAction">
       <add-to-group group-id="EditorPopupMenu" anchor="last"/>
     </action>
     <action id="com.block.gooseintellij.AskGooseAboutFileOrDirectoryAction"
             class="com.block.gooseintellij.AskGooseAboutFileOrDirectoryAction"
-            text="Ask Goose About This">
+            text="Ask Goose About This" icon="com.block.gooseintellij.GooseIcons.GooseAction">
       <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
     </action>
   </actions>
 
   <extensions defaultExtensionNs="com.intellij">
     <postStartupActivity implementation="com.block.gooseintellij.GoosePluginStartupActivity"/>
-    <toolWindow id="Goose Terminal" anchor="right" factoryClass="com.block.gooseintellij.toolWindow.GooseTerminalPanelFactory"/>
+    <toolWindow id="Goose Terminal"
+        anchor="right"
+        icon="com.block.gooseintellij.GooseIcons.GooseWindow"
+        factoryClass="com.block.gooseintellij.toolWindow.GooseTerminalPanelFactory"/>
     <notificationGroup id="Goose Notifications" displayType="BALLOON"/>
   </extensions>
 </idea-plugin>
