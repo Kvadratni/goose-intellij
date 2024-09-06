@@ -31,8 +31,8 @@ class AskGooseToCompleteCode : IntentionAction {
 
             // Send command to Goose for code completion
             val message = "There is some unfinished code around line: $lineNumber in file: ${file?.virtualFile?.path}, can you please try to complete it as best makes sense."
-            val gooseTerminalPanel = GooseTerminalPanel() // You would generally retrieve the singleton instance
-            gooseTerminalPanel.printOutput(message)
+            val output = GooseCommandHelper.sendCommandToGoose(message)
+            
         }
     }
 

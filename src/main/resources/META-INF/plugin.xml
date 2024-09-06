@@ -6,26 +6,24 @@
     Goose is a programming agent that runs on your machine. You need goose-ai package installed for this to work. goose: https://github.com/square/goose
   ]]></description>
 
-  <!-- Product and plugin compatibility requirements -->
   <depends>com.intellij.modules.platform</depends>
-  <!-- Register Actions -->
-  <actions>
-    <action id="com.block.gooseintellij.OpenGooseTerminalAction"
-        class="com.block.gooseintellij.OpenGooseTerminalAction"
-        text="Open Goose Terminal"/>
-    <action id="com.block.gooseintellij.SendToGooseAction"
-        class="com.block.gooseintellij.SendToGooseAction"
-        text="Send to Goose"/>
-  </actions>
-  <!-- Extension points defined by the plugin -->
-  <extensions defaultExtensionNs="com.intellij">
 
-    <!-- Register Tool Window -->
-    <toolWindow id="Goose Terminal"
-        anchor="bottom"
-        factoryClass="com.block.gooseintellij.GooseTerminalToolWindowFactory"/>
-    
-    <!-- Register Listeners -->
-    <projectService serviceImplementation="com.block.gooseintellij.GooseFileTracker"/>
+  <actions>
+    <action id="com.block.gooseintellij.SendToGooseAction"
+            class="com.block.gooseintellij.SendToGooseAction"
+            text="Ask Goose About This">
+      <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+    </action>
+    <action id="com.block.gooseintellij.AskGooseAboutFileOrDirectoryAction"
+            class="com.block.gooseintellij.AskGooseAboutFileOrDirectoryAction"
+            text="Ask Goose About This">
+      <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
+    </action>
+  </actions>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <postStartupActivity implementation="com.block.gooseintellij.GoosePluginStartupActivity"/>
+    <toolWindow id="Goose Terminal" anchor="right" factoryClass="com.block.gooseintellij.toolWindow.GooseTerminalPanelFactory"/>
+    <notificationGroup id="Goose Notifications" displayType="BALLOON"/>
   </extensions>
 </idea-plugin>
