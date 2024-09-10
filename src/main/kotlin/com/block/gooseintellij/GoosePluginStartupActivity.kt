@@ -1,12 +1,11 @@
 package com.block.gooseintellij
 
-import com.block.gooseintellij.toolWindow.GooseTerminalPanel
+import com.block.gooseintellij.toolWindow.GooseTerminalWidget
 import com.intellij.execution.ExecutionException
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.ide.BrowserUtil
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.progress.PerformInBackgroundOption
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
@@ -18,12 +17,10 @@ class GoosePluginStartupActivity : ProjectActivity {
     override suspend fun execute(project: Project) {
         ApplicationManager.getApplication().invokeLater {
             val toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Goose Terminal")
-
-            toolWindow?.show(null)
-
             val contentManager = toolWindow?.contentManager
             val content = contentManager?.getContent(0)
-            val gooseTerminalPanel = content?.component as? GooseTerminalPanel
+            val gooseTerminal = content?.component as? GooseTerminalWidget
+
 
             ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Initializing Goose plugin") {
                 override fun run(indicator: com.intellij.openapi.progress.ProgressIndicator) {
@@ -43,14 +40,14 @@ class GoosePluginStartupActivity : ProjectActivity {
                                 if (result == Messages.YES) {
                                     BrowserUtil.browse(installUrl)
                                 } else {
-                                    gooseTerminalPanel?.printOutput("Goose installation was canceled by the user.")
+                                    gooseTerminal?.writeToTerminal("Goose installation was canceled by the user.")
                                 }
                             }
                         } else {
-                            startGooseSession(true, gooseTerminalPanel)
+                            startGooseSession(true, gooseTerminal)
                         }
                     } else {
-                        startGooseSession(false, gooseTerminalPanel)
+                        startGooseSession(false, gooseTerminal)
                     }
                 }
             })
@@ -69,27 +66,9 @@ class GoosePluginStartupActivity : ProjectActivity {
         }
     }
 
-    private fun startGooseSession(usingSqGoose: Boolean, gooseTerminalPanel: GooseTerminalPanel?) {
-        gooseTerminalPanel?.printOutput("Starting Goose session...")
-
-        ProgressManager.getInstance().run(object : Task.Backgroundable(null, "Running Goose session", true, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
-            override fun run(indicator: com.intellij.openapi.progress.ProgressIndicator) {
-                val commandLine = if (usingSqGoose) GeneralCommandLine("sq", "goose", "session", "start")
-                                  else GeneralCommandLine("goose", "session", "start")
-                try {
-                    val processHandler = OSProcessHandler(commandLine)
-                    processHandler.startNotify()
-                    gooseTerminalPanel?.attachToProcess(processHandler)
-                    processHandler.waitFor()
-                    ApplicationManager.getApplication().invokeLater {
-                        gooseTerminalPanel?.printOutput("Goose session started.")
-                    }
-                } catch (e: ExecutionException) {
-                    ApplicationManager.getApplication().invokeLater {
-                        gooseTerminalPanel?.printOutput("Failed to start Goose session.")
-                    }
-                }
-            }
-        })
+    private fun startGooseSession(usingSqGoose: Boolean, gooseTerminal: GooseTerminalWidget?) {
+        val command = if (usingSqGoose) "sq goose session start" else "goose session start"
+        gooseTerminal?.writeToTerminal("Starting Goose session...")
+        GooseTerminalWidget.writeCommandToTerminal(gooseTerminal?.connector!!, command)
     }
 }

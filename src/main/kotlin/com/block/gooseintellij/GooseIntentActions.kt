@@ -1,6 +1,6 @@
 package com.block.gooseintellij
 
-import com.block.gooseintellij.toolWindow.GooseTerminalPanel
+import com.block.gooseintellij.toolWindow.GooseTerminalWidget
 import com.intellij.codeInsight.intention.IntentionAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
@@ -25,9 +25,12 @@ class AskGooseToCompleteCode : IntentionAction {
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {
         val toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Goose Terminal")
-        val contentManager = toolWindow?.contentManager
-        val content = contentManager?.getContent(0)
-        val gooseTerminalPanel = content?.component as? GooseTerminalPanel
+        if(!toolWindow?.isVisible!!) {
+            toolWindow.show()
+        }
+        val contentManager = toolWindow.contentManager
+        val content = contentManager.getContent(0)
+        val gooseTerminal = content?.component as? GooseTerminalWidget
 
         val document = editor?.document
         val caretModel = editor?.caretModel
@@ -36,7 +39,7 @@ class AskGooseToCompleteCode : IntentionAction {
         if (document != null && offset != null) {
             val lineNumber = document.getLineNumber(offset) + 1
             val command = "Please complete the code around line: $lineNumber in file: ${file?.virtualFile?.path}"
-            gooseTerminalPanel?.processInput(command)
+            GooseTerminalWidget.writeCommandToTerminal(gooseTerminal?.connector!!, command)
         }
     }
 

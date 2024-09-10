@@ -1,6 +1,6 @@
 package com.block.gooseintellij
 
-import com.block.gooseintellij.toolWindow.GooseTerminalPanel
+import com.block.gooseintellij.toolWindow.GooseTerminalWidget
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
@@ -15,20 +15,15 @@ class OpenGooseTerminalAction : AnAction() {
     override fun actionPerformed(event: AnActionEvent) {
         val project = event.project
         val toolWindow = ToolWindowManager.getInstance(project!!).getToolWindow("Goose Terminal")
-        
+
         if (toolWindow != null && !toolWindow.isVisible) {
             toolWindow.activate(null)
-            
-            val contentManager = toolWindow.contentManager
-            val content = contentManager.getContent(0)
-            val gooseTerminalPanel = content?.component as? GooseTerminalPanel
-
-            gooseTerminalPanel?.processInput("goose session start\n")
+            toolWindow.show()
         }
     }
 }
 
-const val GOOSE_COMMAND_FORMAT = "Please analyze the following code %s\n in file: %s\n"
+const val GOOSE_COMMAND_FORMAT = "Please analyze the following code %s\\n in file: %s\\n"
 
 class SendToGooseAction : AnAction() {
     override fun actionPerformed(event: AnActionEvent) {
@@ -41,7 +36,7 @@ class SendToGooseAction : AnAction() {
 
         val contentManager = toolWindow?.contentManager
         val content = contentManager?.getContent(0)
-        val gooseTerminalPanel = content?.component as? GooseTerminalPanel
+        val gooseTerminal = content?.component as? GooseTerminalWidget
 
         val editor = event.getData(CommonDataKeys.EDITOR)
         val selectedText = editor?.selectionModel?.selectedText
@@ -49,8 +44,8 @@ class SendToGooseAction : AnAction() {
 
         if (selectedText != null && selectedText.isNotEmpty() && psiFile != null) {
             val filePath = psiFile.virtualFile.path
-            val command = String.format(GOOSE_COMMAND_FORMAT, selectedText, filePath)
-            gooseTerminalPanel?.processInput(command)
+            val command = String.format(GOOSE_COMMAND_FORMAT, selectedText.replace("\n", "\\n"), filePath)
+            GooseTerminalWidget.writeCommandToTerminal(gooseTerminal?.connector!!, command)
         } else {
             Messages.showMessageDialog("No file or text selected.", "Warning", Messages.getWarningIcon())
         }
@@ -75,6 +70,9 @@ class AskGooseAboutFileOrDirectoryAction : AnAction() {
             if (toolWindow == null) {
                 logger.warn("ToolWindow 'Goose' not found")
             } else {
+                if (!toolWindow.isVisible) {
+                    OpenGooseTerminalAction().actionPerformed(event)
+                }
                 ProgressManager.getInstance()
                     .run(object : Task.Backgroundable(project, "Asking Goose About File/Directory...") {
                         override fun run(indicator: com.intellij.openapi.progress.ProgressIndicator) {
@@ -83,11 +81,10 @@ class AskGooseAboutFileOrDirectoryAction : AnAction() {
                             
                             val contentManager = toolWindow.contentManager
                             val content = contentManager.getContent(0)
-                            val gooseTerminalPanel = content?.component as? GooseTerminalPanel
-                            logger.info("GooseTerminalPanel: $gooseTerminalPanel")
+                            val gooseTerminal = content?.component as? GooseTerminalWidget
 
-                            if (gooseTerminalPanel != null) {
-                                gooseTerminalPanel.processInput(question)
+                            if (gooseTerminal != null) {
+                                GooseTerminalWidget.writeCommandToTerminal(gooseTerminal.connector!!, question)
                                 logger.info("Question sent to GooseTerminalPanel")
                             } else {
                                 logger.warn("GooseTerminalPanel is null")

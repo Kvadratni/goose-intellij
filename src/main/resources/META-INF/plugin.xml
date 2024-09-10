@@ -26,7 +26,7 @@
     <toolWindow id="Goose Terminal"
         anchor="right"
         icon="com.block.gooseintellij.GooseIcons.GooseWindow"
-        factoryClass="com.block.gooseintellij.toolWindow.GooseTerminalPanelFactory"/>
+        factoryClass="com.block.gooseintellij.toolWindow.GooseTerminalWidgetFactory"/>
     <notificationGroup id="Goose Notifications" displayType="BALLOON"/>
   </extensions>
 </idea-plugin>
