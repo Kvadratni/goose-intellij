@@ -67,7 +67,7 @@ class SelectGooseProfileAction : AnAction() {
     private fun isSqGooseInstalled(): Boolean {
         val command = "sq version"
         return try {
-            Runtime.getRuntime().exec(command).waitFor() == 0
+            ProcessBuilder(command.split(" ")).start().waitFor() == 0
         } catch (e: Exception) {
             false
         }

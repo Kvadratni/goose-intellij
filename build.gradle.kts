@@ -1,14 +1,20 @@
+import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
+
 plugins {
   id("java")
   id("org.jetbrains.kotlin.jvm") version "1.9.24"
-  id("org.jetbrains.intellij") version "1.17.3"
+  id("org.jetbrains.intellij.platform") version "2.0.1"
 }
 
 group = "com.block"
-version = "1.1"
+version = "1.11"
 
 repositories {
   mavenCentral()
+  intellijPlatform {
+    defaultRepositories()
+    intellijDependencies()
+  }
 }
 
 // Set the JVM language level used to build the project.
@@ -16,18 +22,15 @@ kotlin {
   jvmToolchain(17)
 }
 
-// Configure Gradle IntelliJ Plugin
-// Read more: https://plugins.jetbrains.com/docs/intellij/tools-gradle-intellij-plugin.html
-intellij {
-  version.set("2023.2.6")
-  type.set("IC") // Target IDE Platform
-
-  plugins.set(listOf("org.jetbrains.kotlin"))
-}
-
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-    implementation("org.commonmark:commonmark:0.17.1")
+    implementation("org.commonmark:commonmark:0.22.0")
+  intellijPlatform {
+    intellijIdeaCommunity("2023.3")
+    pluginVerifier()
+    zipSigner()
+    instrumentationTools()
+  }
 }
 
 tasks {
