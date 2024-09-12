@@ -7,6 +7,10 @@ Goose IntelliJ Plugin is designed to integrate the Goose AI assistant into the I
 - **Smart Code Analysis**: Select code and get insights from the Goose AI.
 - **Interactive Terminal**: Integrated terminal with Goose AI session support.
 - **File and Directory Information**: Ask Goose about specific files or directories within your project.
+- **Profile Selection**: Select and manage Goose AI profiles within IntelliJ.
+- **Customizable Settings**: Configure Goose AI settings and preferences.
+- **Dark Mode Support**: Compatible with IntelliJ's dark theme.
+- **Session Persistence**: Saves and restores Goose AI sessions.
 
 ## Installation
 1. Download the plugin from the IntelliJ Plugin Marketplace.
@@ -21,17 +25,26 @@ To open the Goose Terminal, click on the Goose icon in the tool window bar.
 
 ### Sending Code to Goose
 1. Select the code you want to analyze.
-2. Right-click and select `Ask Goose About This`.
+2. Right-click and select `Ask Goose To Explain Selection`.
 3. View the analysis results in the Goose Terminal.
 
 ![Send to Goose](images/send_to_goose.png)  
 
 ### Asking Goose About a File or Directory
 1. Right-click on a file or directory in the Project view.
-2. Select `Ask Goose About This`.
+2. Select `Ask Goose to Explain This File`.
 3. Goose will provide information about the selected item in the terminal.
 
 ![Ask Goose About File](images/ask_goose_about_file.png)  
+
+### Selecting a Goose Profile
+1. Navigate to the `Goose` menu in the Tools menu.
+2. Select `Select Goose Profile`.
+
+![Select Goose Profile](images/select_goose_profile_menu.png)
+3. Choose or add a new profile from the dialog that appears.
+
+![Select Goose Profile](images/select_goose_profile.png)  
 
 ## Development
 ### Prerequisites
