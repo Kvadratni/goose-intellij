@@ -11,13 +11,29 @@
   <actions>
     <action id="com.block.gooseintellij.SendToGooseAction"
             class="com.block.gooseintellij.SendToGooseAction"
-            text="Ask Goose About This" icon="com.block.gooseintellij.GooseIcons.GooseAction">
+            text="Ask Goose To Explain Selection" icon="com.block.gooseintellij.GooseIcons.GooseAction">
       <add-to-group group-id="EditorPopupMenu" anchor="last"/>
     </action>
     <action id="com.block.gooseintellij.AskGooseAboutFileOrDirectoryAction"
             class="com.block.gooseintellij.AskGooseAboutFileOrDirectoryAction"
-            text="Ask Goose About This" icon="com.block.gooseintellij.GooseIcons.GooseAction">
+            text="Ask Goose to Explain This File" icon="com.block.gooseintellij.GooseIcons.GooseAction">
       <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
+    </action>
+
+    <!-- Custom Goose Group -->
+    <group id="com.block.gooseintellij.goose"
+           text="Goose"
+           popup="true"
+           description="Goose settings"
+           icon="com.block.gooseintellij.GooseIcons.GooseAction">
+        <add-to-group group-id="ToolsMenu"/>
+    </group>
+
+    <action id="com.block.gooseintellij.SelectGooseProfileAction"
+            class="com.block.gooseintellij.SelectGooseProfileAction"
+        icon="com.intellij.icons.ExpUiIcons.General.Settings"
+            text="Select Goose Profile">
+      <add-to-group group-id="com.block.gooseintellij.goose" anchor="first"/>
     </action>
   </actions>
 

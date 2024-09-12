@@ -25,6 +25,11 @@ intellij {
   plugins.set(listOf("org.jetbrains.kotlin"))
 }
 
+dependencies {
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    implementation("org.commonmark:commonmark:0.17.1")
+}
+
 tasks {
   // Set the JVM compatibility versions
   withType<JavaCompile> {
