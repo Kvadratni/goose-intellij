@@ -107,5 +107,9 @@ class GoosePluginStartupActivity : ProjectActivity {
     gooseTerminal = content?.component as? GooseTerminalWidget
     gooseTerminal!!.writeToTerminal("Restarting session...")
     startGooseSession(true, gooseTerminal, project);
+    if (!toolWindow.isVisible) {
+      toolWindow.activate(null)
+      toolWindow.show()
+    }
   }
 }
