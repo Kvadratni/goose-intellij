@@ -45,4 +45,7 @@
         factoryClass="com.block.gooseintellij.toolWindow.GooseTerminalWidgetFactory"/>
     <notificationGroup id="Goose Notifications" displayType="BALLOON"/>
   </extensions>
+  <applicationListeners>
+    <listener class="com.block.gooseintellij.GoosePluginStateListener" topic="com.intellij.ide.plugins.PluginStateListener"/>
+  </applicationListeners>
 </idea-plugin>
