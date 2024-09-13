@@ -1,4 +1,4 @@
-package com.block.gooseintellij
+package com.block.gooseintellij.state
 
 import com.intellij.ide.plugins.IdeaPluginDescriptor
 import com.intellij.ide.plugins.PluginStateListener

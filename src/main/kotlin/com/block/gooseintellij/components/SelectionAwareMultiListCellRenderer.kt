@@ -1,4 +1,4 @@
-package com.block.gooseintellij.multiSelect
+package com.block.gooseintellij.components
 
 import javax.swing.*
 import java.awt.Component

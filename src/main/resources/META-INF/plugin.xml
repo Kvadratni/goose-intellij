@@ -10,13 +10,13 @@
 
   <actions>
     <action id="com.block.gooseintellij.SendToGooseAction"
-            class="com.block.gooseintellij.SendToGooseAction"
-            text="Ask Goose To Explain Selection" icon="com.block.gooseintellij.GooseIcons.GooseAction">
+            class="com.block.gooseintellij.actions.SendToGooseAction"
+            text="Ask Goose To Explain Selection" icon="com.block.gooseintellij.utils.GooseIcons.GooseAction">
       <add-to-group group-id="EditorPopupMenu" anchor="last"/>
     </action>
     <action id="com.block.gooseintellij.AskGooseAboutFileOrDirectoryAction"
-            class="com.block.gooseintellij.AskGooseAboutFileOrDirectoryAction"
-            text="Ask Goose to Explain This File" icon="com.block.gooseintellij.GooseIcons.GooseAction">
+            class="com.block.gooseintellij.actions.AskGooseAboutFileOrDirectoryAction"
+            text="Ask Goose to Explain This File" icon="com.block.gooseintellij.utils.GooseIcons.GooseAction">
       <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
     </action>
 
@@ -25,12 +25,12 @@
            text="Goose"
            popup="true"
            description="Goose settings"
-           icon="com.block.gooseintellij.GooseIcons.GooseAction">
+           icon="com.block.gooseintellij.utils..GooseIcons.GooseAction">
         <add-to-group group-id="ToolsMenu"/>
     </group>
 
     <action id="com.block.gooseintellij.SelectGooseProfileAction"
-            class="com.block.gooseintellij.SelectGooseProfileAction"
+            class="com.block.gooseintellij.actions.SelectGooseProfileAction"
         icon="com.intellij.icons.ExpUiIcons.General.Settings"
             text="Select Goose Profile">
       <add-to-group group-id="com.block.gooseintellij.goose" anchor="first"/>
@@ -38,14 +38,14 @@
   </actions>
 
   <extensions defaultExtensionNs="com.intellij">
-    <postStartupActivity implementation="com.block.gooseintellij.GoosePluginStartupActivity"/>
+    <postStartupActivity implementation="com.block.gooseintellij.actions.GoosePluginStartupActivity"/>
     <toolWindow id="Goose Terminal"
         anchor="right"
-        icon="com.block.gooseintellij.GooseIcons.GooseWindow"
+        icon="com.block.gooseintellij.utils.GooseIcons.GooseWindow"
         factoryClass="com.block.gooseintellij.toolWindow.GooseTerminalWidgetFactory"/>
     <notificationGroup id="Goose Notifications" displayType="BALLOON"/>
   </extensions>
   <applicationListeners>
-    <listener class="com.block.gooseintellij.GoosePluginStateListener" topic="com.intellij.ide.plugins.PluginStateListener"/>
+    <listener class="com.block.gooseintellij.state.GoosePluginStateListener" topic="com.intellij.ide.plugins.PluginStateListener"/>
   </applicationListeners>
 </idea-plugin>
