@@ -1,7 +1,7 @@
-package com.block.gooseintellij
+package com.block.gooseintellij.actions
 
-import com.block.gooseintellij.multiSelect.MultiSelectComboBox
-import com.block.gooseintellij.multiSelect.MultiselectCellEditor
+import com.block.gooseintellij.components.MultiSelectComboBox
+import com.block.gooseintellij.components.MultiselectCellEditor
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.ui.DialogWrapper
@@ -20,6 +20,7 @@ import java.awt.GridBagLayout
 import java.awt.GridBagConstraints
 import java.io.File
 import javax.swing.table.DefaultTableModel
+import com.block.gooseintellij.utils.GooseUtils
 
 class SelectGooseProfileAction : AnAction() {
 
@@ -42,7 +43,7 @@ class SelectGooseProfileAction : AnAction() {
     val availableProviders = getAvailableProviders()
 
     val dialog =
-      ProfileSelectionDialog(profiles, savedProfile, availableProviders, isSqGooseInstalled()).apply {
+      ProfileSelectionDialog(profiles, savedProfile, availableProviders).apply {
           setSize(800, 800)
       }
     if (dialog.showAndGet()) {
@@ -65,34 +66,28 @@ class SelectGooseProfileAction : AnAction() {
 
   private fun getAvailableProviders(): List<String> {
     val providers = listOf("openai", "anthropic", "databricks")
-    if (isSqGooseInstalled()) {
+    if (GooseUtils.getSqGooseState()!!) {
       return providers + "block"
     }
     return providers
   }
 
-  private fun isSqGooseInstalled(): Boolean {
-    val command = "sq version"
-    return try {
-      ProcessBuilder(command.split(" ")).start().waitFor() == 0
-    } catch (e: Exception) {
-      false
-    }
-  }
 
   private class ProfileSelectionDialog(
     private val profiles: MutableMap<String, MutableMap<String, Any>>,
     savedProfile: String?,
     private val availableProviders: List<String>,
-    private val isSqGooseInstalled: Boolean,
   ) : DialogWrapper(true) {
 
     private val profileList = JBList(profiles.keys.toList())
     private val providerComboBox = ComboBox(availableProviders.toTypedArray())
     private val toolkitToDescriptionMap: Map<String, String>
       get() {
-        val sqPrefix = if (isSqGooseInstalled) "sq" else ""
-        val toolkitList = ProcessBuilder(sqPrefix, "goose", "toolkit", "list").start()
+        val commands = mutableListOf("goose", "toolkit", "list")
+        if (GooseUtils.getSqGooseState()!!) {
+          commands.add(0, GooseUtils.getSqPath()!!)
+        }
+        val toolkitList = ProcessBuilder(commands).start()
         val toolkitToDescriptionMap = mutableMapOf<String, String>()
         val toolkitLines = toolkitList.inputStream.bufferedReader().readLines().drop(1)
         toolkitLines.forEach {

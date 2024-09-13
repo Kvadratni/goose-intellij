@@ -1,4 +1,4 @@
-package com.block.gooseintellij
+package com.block.gooseintellij.actions
 
 import com.block.gooseintellij.toolWindow.GooseTerminalWidget
 import com.intellij.codeInsight.intention.IntentionAction
@@ -7,6 +7,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import com.intellij.openapi.wm.ToolWindowManager
 import org.jetbrains.annotations.NotNull
+import com.block.gooseintellij.utils.GooseUtils
 
 class AskGooseToCompleteCode : IntentionAction {
     @NotNull
@@ -39,7 +40,7 @@ class AskGooseToCompleteCode : IntentionAction {
         if (document != null && offset != null) {
             val lineNumber = document.getLineNumber(offset) + 1
             val command = "Please complete the code around line: $lineNumber in file: ${file?.virtualFile?.path}"
-            GooseTerminalWidget.writeCommandToTerminal(gooseTerminal?.connector!!, command)
+            GooseUtils.writeCommandToTerminal(gooseTerminal?.connector!!, command)
         }
     }
 
@@ -47,3 +48,4 @@ class AskGooseToCompleteCode : IntentionAction {
         return false
     }
 }
+

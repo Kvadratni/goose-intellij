@@ -1,4 +1,4 @@
-package com.block.gooseintellij
+package com.block.gooseintellij.utils
 
 import com.intellij.openapi.util.IconLoader
 

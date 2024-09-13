@@ -40,3 +40,7 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+/private.pem
+/chain.crt
+/private_encrypted.pem
+/.intellijPlatform/self-update.lock

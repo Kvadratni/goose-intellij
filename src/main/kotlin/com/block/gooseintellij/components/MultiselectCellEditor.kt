@@ -1,4 +1,4 @@
-package com.block.gooseintellij.multiSelect
+package com.block.gooseintellij.components
 
 import java.awt.*
 import java.awt.event.ActionEvent
