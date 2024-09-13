@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "com.block"
-version = "1.11"
+version = "1.2"
 
 repositories {
   mavenCentral()
@@ -26,7 +26,7 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("org.commonmark:commonmark:0.22.0")
   intellijPlatform {
-    intellijIdeaCommunity("2023.3")
+    intellijIdeaUltimate("2024.2.1")
     pluginVerifier()
     zipSigner()
     instrumentationTools()
@@ -36,11 +36,11 @@ dependencies {
 tasks {
   // Set the JVM compatibility versions
   withType<JavaCompile> {
-    sourceCompatibility = "17"
-    targetCompatibility = "17"
+    sourceCompatibility = "21"
+    targetCompatibility = "21"
   }
   withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-    kotlinOptions.jvmTarget = "17"
+    kotlinOptions.jvmTarget = "21"
   }
 
   patchPluginXml {
