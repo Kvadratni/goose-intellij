@@ -72,12 +72,7 @@ class SelectGooseProfileAction : AnAction() {
   }
 
   private fun isSqGooseInstalled(): Boolean {
-    val command = "sq version"
-    return try {
-      ProcessBuilder(command.split(" ")).start().waitFor() == 0
-    } catch (e: Exception) {
-      false
-    }
+    return GoosePluginStartupActivity().canInitializeGoose(true)
   }
 
   private class ProfileSelectionDialog(
@@ -91,8 +86,11 @@ class SelectGooseProfileAction : AnAction() {
     private val providerComboBox = ComboBox(availableProviders.toTypedArray())
     private val toolkitToDescriptionMap: Map<String, String>
       get() {
-        val sqPrefix = if (isSqGooseInstalled) "sq" else ""
-        val toolkitList = ProcessBuilder(sqPrefix, "goose", "toolkit", "list").start()
+        val commands = mutableListOf("goose", "toolkit", "list")
+        if (isSqGooseInstalled) {
+          commands.add(0, "sq")
+        }
+        val toolkitList = Runtime.getRuntime().exec(commands.toTypedArray())
         val toolkitToDescriptionMap = mutableMapOf<String, String>()
         val toolkitLines = toolkitList.inputStream.bufferedReader().readLines().drop(1)
         toolkitLines.forEach {

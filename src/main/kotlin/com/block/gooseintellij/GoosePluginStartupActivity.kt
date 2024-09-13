@@ -57,7 +57,7 @@ class GoosePluginStartupActivity : ProjectActivity {
     }
   }
 
-  private fun canInitializeGoose(useSQ: Boolean): Boolean {
+  fun canInitializeGoose(useSQ: Boolean): Boolean {
     return try {
       val commandLine =
         if (useSQ) GeneralCommandLine("sq", "goose") else GeneralCommandLine("goose")
