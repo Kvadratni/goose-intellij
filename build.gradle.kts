@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "com.block"
-version = "1.11"
+version = "1.2"
 
 repositories {
   mavenCentral()
@@ -26,7 +26,7 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("org.commonmark:commonmark:0.22.0")
   intellijPlatform {
-    intellijIdeaCommunity("2023.3")
+    intellijIdeaUltimate("2024.1.5")
     pluginVerifier()
     zipSigner()
     instrumentationTools()
