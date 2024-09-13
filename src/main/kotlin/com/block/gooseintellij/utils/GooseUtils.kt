@@ -40,7 +40,7 @@ object GooseUtils {
     fun checkGooseAvailability() {
         try {
             if (isSqGoosePresent == null) {
-                sqPath = getCommandOutput(arrayOf("which", "sq"))
+                sqPath = getCommandOutput(arrayOf("which", "sq")).ifEmpty { "/opt/homebrew/bin/sq" }
                 isSqGoosePresent = getCommandOutput(arrayOf(sqPath!!, "goose", "--version")).isNotEmpty()
                 logger.info("SQ Goose present: $isSqGoosePresent, Path: $sqPath")
             }
@@ -106,6 +106,10 @@ object GooseUtils {
 
     fun getSqGooseState(): Boolean? {
         return isSqGoosePresent
+    }
+
+    fun getSqPath(): String? {
+        return sqPath
     }
 
     fun getShell(): Array<String> {

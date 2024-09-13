@@ -25,7 +25,7 @@
            text="Goose"
            popup="true"
            description="Goose settings"
-           icon="com.block.gooseintellij.utils..GooseIcons.GooseAction">
+           icon="com.block.gooseintellij.utils.GooseIcons.GooseAction">
         <add-to-group group-id="ToolsMenu"/>
     </group>
 

@@ -85,7 +85,7 @@ class SelectGooseProfileAction : AnAction() {
       get() {
         val commands = mutableListOf("goose", "toolkit", "list")
         if (GooseUtils.getSqGooseState()!!) {
-          commands.add(0, "sq")
+          commands.add(0, GooseUtils.getSqPath()!!)
         }
         val toolkitList = ProcessBuilder(commands).start()
         val toolkitToDescriptionMap = mutableMapOf<String, String>()
