@@ -66,7 +66,7 @@ object GooseUtils {
             val process = ProcessBuilder(command.asList()).start()
             process.inputStream.bufferedReader().readText().trim()
         } catch (e: IOException) {
-            logger.warn("Command check failed for: $command", e)
+            logger.warn("Command check failed for: ${command.joinToString(" ")}", e)
             ""
         }
     }
@@ -120,7 +120,7 @@ object GooseUtils {
             command = arrayOf("cmd.exe")
         } else if (isMacOs && SystemInfo.OS_VERSION >= "10.15") {
             // Default to zsh for macOS >= 10.15
-            command = arrayOf("/bin/zsh")
+            command = arrayOf("/bin/zsh", "-l")
         } else {
             // Linux or older macOS should use bash
             command = arrayOf("/bin/bash")
