@@ -54,7 +54,10 @@ class GooseTerminalWidget(toolWindow: ToolWindow) : javax.swing.JPanel() {
 
   private fun createLocalShellTtyConnector(): TtyConnector {
     return try {
-      val builder = PtyProcessBuilder().setCommand(GooseUtils.getShell())
+      val command = GooseUtils.getShell()
+      Logger.getInstance(GooseTerminalWidget::class.java)
+        .info("Starting the terminal process with command: ${command.joinToString(" ")}")
+      val builder = PtyProcessBuilder().setCommand(command)
       val ptyProcess = builder.start()
       PtyProcessTtyConnector(ptyProcess, StandardCharsets.UTF_8)
     } catch (e: IOException) {
