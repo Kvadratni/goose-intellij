@@ -58,6 +58,7 @@ class GooseTerminalWidget(toolWindow: ToolWindow) : javax.swing.JPanel() {
       Logger.getInstance(GooseTerminalWidget::class.java)
         .info("Starting the terminal process with command: ${command.joinToString(" ")}")
       val builder = PtyProcessBuilder().setCommand(command)
+        .setEnvironment(mapOf("TERM" to "xterm-256color"))
       val ptyProcess = builder.start()
       PtyProcessTtyConnector(ptyProcess, StandardCharsets.UTF_8)
     } catch (e: IOException) {
