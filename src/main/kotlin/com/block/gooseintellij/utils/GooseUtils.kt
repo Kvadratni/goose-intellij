@@ -67,7 +67,7 @@ object GooseUtils {
             process.inputStream.bufferedReader().readText().trim()
         } catch (e: IOException) {
             logger.warn("Command check failed for: ${command.joinToString(" ")}", e)
-            ""
+            throw e
         }
     }
 
@@ -100,16 +100,16 @@ object GooseUtils {
         return true
     }
 
-    fun getGooseState(): Boolean? {
-        return isGoosePresent
+    fun getGooseState(): Boolean {
+        return isGoosePresent ?: false
     }
 
-    fun getSqGooseState(): Boolean? {
-        return isSqGoosePresent
+    fun getSqGooseState(): Boolean {
+        return isSqGoosePresent ?: false
     }
 
-    fun getSqPath(): String? {
-        return sqPath
+    fun getSqPath(): String {
+        return sqPath ?: ""
     }
 
     fun getShell(): Array<String> {
