@@ -46,6 +46,14 @@
         text="Ask Goose to Generate Tests" icon="com.block.gooseintellij.utils.GooseIcons.GooseAction">
       <add-to-group group-id="EditorPopupMenu" anchor="last"/>
     </action>
+
+    <!-- New action to open .goosehints file -->
+    <action id="com.block.gooseintellij.actions.OpenGooseHintsFileAction"
+        class="com.block.gooseintellij.actions.OpenGooseHintsFileAction"
+        icon="com.intellij.icons.ExpUiIcons.FileTypes.Config"
+        text="Open Goose Hints File">
+      <add-to-group group-id="com.block.gooseintellij.goose" anchor="last"/>
+    </action>
   </actions>
 
   <extensions defaultExtensionNs="com.intellij">
