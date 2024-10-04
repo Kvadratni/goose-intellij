@@ -65,7 +65,7 @@ class SelectGooseProfileAction : AnAction() {
   }
 
   private fun getAvailableProviders(): List<String> {
-    val providers = listOf("openai", "anthropic", "databricks")
+    val providers = listOf("openai", "anthropic", "databricks", "ollama")
     if (GooseUtils.getSqGooseState()) {
       return providers + "block"
     }

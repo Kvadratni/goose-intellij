@@ -63,15 +63,19 @@ object GooseActionHelper {
             })
     }
 
-    fun checkAndSendToGoose(event: AnActionEvent, commandFormat: String, dataExtractor: (AnActionEvent) -> Pair<String?, String?>) {
+    fun checkAndSendToGoose(event: AnActionEvent, commandFormat: String, dataExtractor: (AnActionEvent) -> Triple<String?, String?, Boolean>) {
         val project = event.project
 
         if (!checkGooseAvailability(project)) return
 
-        val (selectedText, filePath) = dataExtractor(event)
-        if (selectedText != null && selectedText.isNotEmpty() && filePath != null) {
+        val (selectedText, filePath, isEditor) = dataExtractor(event)
+        if (isEditor && selectedText != null && selectedText.isNotEmpty() && filePath != null) {
             val gooseTerminal = getGooseTerminal(event) ?: return
             val command = String.format(commandFormat, selectedText.replace("\n", "\\n"), filePath)
+            askGooseToGenerateTests(gooseTerminal, command)
+        } else if (!isEditor && filePath != null) {
+            val gooseTerminal = getGooseTerminal(event) ?: return
+            val command = String.format(commandFormat, filePath)
             askGooseToGenerateTests(gooseTerminal, command)
         } else {
             Messages.showMessageDialog("No file or text selected.", "Warning", Messages.getWarningIcon())

@@ -73,29 +73,28 @@ object GooseUtils {
 
     fun promptGooseInstallationIfNeeded(gooseTerminal: GooseTerminalWidget?, project: Project): Boolean {
         if (isSqGoosePresent!!) {
-            if (isGoosePresent!!) {
-                ApplicationManager.getApplication().invokeLater {
-                    val installUrl = "https://github.com/square/goose"
-                    val result = Messages.showYesNoDialog(
-                        project,
-                        "Goose is required to be installed. Do you want to install it?",
-                        "Install Goose",
-                        "Install",
-                        "Cancel",
-                        Messages.getQuestionIcon()
-                    )
-
-                    if (result == Messages.YES) {
-                        BrowserUtil.browse(installUrl)
-                    } else {
-                        gooseTerminal?.writeToTerminal("Goose installation was canceled by the user.")
-                    }
-                }
-                return false
-            }
             startGooseSession(true, gooseTerminal, project)
-        } else {
+        } else if(isGoosePresent!!) {
             startGooseSession(false, gooseTerminal, project)
+        } else {
+            ApplicationManager.getApplication().invokeLater {
+                val installUrl = "https://github.com/square/goose"
+                val result = Messages.showYesNoDialog(
+                    project,
+                    "Goose is required to be installed. Do you want to install it?",
+                    "Install Goose",
+                    "Install",
+                    "Cancel",
+                    Messages.getQuestionIcon()
+                )
+
+                if (result == Messages.YES) {
+                    BrowserUtil.browse(installUrl)
+                } else {
+                    gooseTerminal?.writeToTerminal("Goose installation was canceled by the user.")
+                }
+            }
+            return false
         }
         return true
     }
