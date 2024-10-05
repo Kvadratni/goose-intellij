@@ -34,6 +34,7 @@
         class="com.block.gooseintellij.actions.AskGooseToAction"
         text="Ask Goose To ..." icon="com.block.gooseintellij.utils.GooseIcons.GooseAction">
       <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
+      <keyboard-shortcut keymap="$default" first-keystroke="alt G" />
     </action>
     <action id="com.block.gooseintellij.actions.AskGooseToGenerateTestsAction"
         class="com.block.gooseintellij.actions.AskGooseToGenerateTestsAction"
@@ -58,6 +59,7 @@
         class="com.block.gooseintellij.actions.AskGooseToAction"
         text="Ask goose to ..." icon="com.block.gooseintellij.utils.GooseIcons.GooseAction">
       <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+      <keyboard-shortcut keymap="$default" first-keystroke="alt G" />
     </action>
   </actions>
 

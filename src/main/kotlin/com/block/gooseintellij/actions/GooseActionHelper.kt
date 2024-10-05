@@ -68,8 +68,11 @@ object GooseActionHelper {
 
         if (!checkGooseAvailability(project)) return
 
-        val (selectedText, filePath, isEditor) = dataExtractor(event)
-        if (isEditor && selectedText != null && selectedText.isNotEmpty() && filePath != null) {
+        var (selectedText, filePath, isEditor) = dataExtractor(event)
+        if (isEditor && filePath != null) {
+            if(selectedText.isNullOrEmpty()) {
+               selectedText = "The whole file"
+            }
             val gooseTerminal = getGooseTerminal(event) ?: return
             val command = String.format(commandFormat, selectedText.replace("\n", "\\n"), filePath)
             askGooseToGenerateTests(gooseTerminal, command)
@@ -78,7 +81,7 @@ object GooseActionHelper {
             val command = String.format(commandFormat, filePath)
             askGooseToGenerateTests(gooseTerminal, command)
         } else {
-            Messages.showMessageDialog("No file or text selected.", "Warning", Messages.getWarningIcon())
+            Messages.showMessageDialog("No file in context", "Warning", Messages.getWarningIcon())
         }
     }
 }
