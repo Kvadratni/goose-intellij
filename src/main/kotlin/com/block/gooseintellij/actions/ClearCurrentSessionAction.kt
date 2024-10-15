@@ -20,7 +20,7 @@ class ClearCurrentSessionAction : AnAction("Clear Current Session") {
             val propertiesComponent = PropertiesComponent.getInstance(project)
             val sessionName = propertiesComponent.getValue("goose.saved.session")
             if (sessionName != null) {
-                val sessionFile = File(System.getProperty("user.home"), ".config/goose/sessions/$sessionName")
+                val sessionFile = File(System.getProperty("user.home"), ".config/goose/sessions/$sessionName.jsonl")
                 if (sessionFile.exists()) {
                     sessionFile.delete()
                 }
