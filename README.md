@@ -1,64 +1,75 @@
 # Goose IntelliJ Plugin
 
 ## Overview
-Goose IntelliJ Plugin is designed to integrate the Goose AI assistant into the IntelliJ platform, providing developers with smart coding assistance and interactive terminal support.
+The Goose IntelliJ Plugin seamlessly integrates the Goose AI assistant into the IntelliJ platform, enhancing developers' workflow with intelligent coding assistance and terminal capabilities.
 
 ## Features
-- **Smart Code Analysis**: Select code and get insights from the Goose AI.
-- **Interactive Terminal**: Integrated terminal with Goose AI session support.
-- **File and Directory Information**: Ask Goose about specific files or directories within your project.
-- **Profile Selection**: Select and manage Goose AI profiles within IntelliJ.
-- **Customizable Settings**: Configure Goose AI settings and preferences.
-- **Dark Mode Support**: Compatible with IntelliJ's dark theme.
-- **Session Persistence**: Saves and restores Goose AI sessions.
+- **Smart Code Analysis**: Easily highlight code to receive sophisticated insights from Goose AI.
+- **Interactive Terminal**: The plugin provides a terminal with Goose AI support, enabling interactive sessions directly within IntelliJ.
+- **Support for .goosehints**: Now processes .goosehints files for extended configuration capabilities.
+- **Session Management**: Improved session persistence, saving and restoring sessions, plus the ability to clear current sessions.
+- **Integrated Shell Actions**: Restart shell functionalities available directly in the UI.
+- **Profile Management Enhancements**: Easier management and selection of Goose AI profiles.
+- **Dark Mode Support**: Fully compatible with IntelliJ's dark theme.
+- **Inline Chat with Hotkey**: Quickly bring up a chat window inline using a customizable hotkey (option+G/ alt+G by default), facilitating rapid interaction with Goose AI during coding.
 
 ## Installation
-1. Download the plugin from the IntelliJ Plugin Marketplace.
-2. Install the plugin through IntelliJ IDEA by navigating to `Settings -> Plugins -> Install Plugin from Disk`.
-3. Restart IntelliJ IDEA to activate the plugin.
+1. Download and install the plugin from the IntelliJ Plugin Marketplace.
+2Restart IntelliJ IDEA after installation.
 
 ## Usage
-### Opening the Goose Terminal
-To open the Goose Terminal, click on the Goose icon in the tool window bar.
+### Goose Terminal
+Click on the Goose icon in the tool window bar to open the Goose Terminal.
 
 ![Goose Terminal Icon](images/goose_terminal_icon.png)  
 
-### Sending Code to Goose
-1. Select the code you want to analyze.
-2. Right-click and select `Ask Goose To Explain Selection`.
-3. View the analysis results in the Goose Terminal.
+### Using Goose for Code Analysis
+1. Highlight the desired code segment.
+2. Right-click and select `Ask Goose To ...`, or use the ALT+G hotkey.
+3. Provide your inquiry in the inline chat window.
+4. Review the results produced by Goose AI in the integrated terminal.
 
-![Send to Goose](images/send_to_goose.png)  
+![Ask Goose in Editor Menu](images/ask_in_editor_menu.png)  
+![Ask Goose in Editor](images/ask_in_editor.png)
 
-### Asking Goose About a File or Directory
-1. Right-click on a file or directory in the Project view.
-2. Select `Ask Goose to Explain This File`.
-3. Goose will provide information about the selected item in the terminal.
+### Inquiring About Files or Directories
+1. Right-click any file or directory within Project view.
+2. Choose `Ask Goose To ...`.
+3. Provide your inquiry in a dialog box.
+4. Information will be provided in the terminal window.
 
-![Ask Goose About File](images/ask_goose_about_file.png)  
+![Inquiry on File Menu](images/inquiry_on_file_menu.png)  
+![Inquiry on File](images/inquiry_on_file.png)  
 
-### Selecting a Goose Profile
-1. Navigate to the `Goose` menu in the Tools menu.
-2. Select `Select Goose Profile`.
+### Managing Goose Profiles
+1. Access the `Goose` menu within the Tools menu.
+2. Opt for `Profile Management`.
 
-![Select Goose Profile](images/select_goose_profile_menu.png)
-3. Choose or add a new profile from the dialog that appears.
+![Goose Profile Management Menu](images/select_goose_profile_menu.png)  
+3. The profile dialog allows selection or creation of a new profile.
 
-![Select Goose Profile](images/select_goose_profile.png)  
+![Profile Management Dialog](images/select_goose_profile.png)  
+
+### Clear Current Session
+Clear your current session easily through the new session management action and restart with new settings as needed.
+![Goose Profile Management Menu](images/select_goose_profile_menu.png)
+
+### Restart Shell Action
+Sometimes your goose shell can get stuck or you may want to restart it for other reasons. You can now do this directly from the UI.
+![Restart Shell Action](images/restart_shell_action.png)
 
 ## Development
-### Prerequisites
-- IntelliJ IDEA 2020.1 or later
-- Java SDK 8 or later
+### Required Environment
+- IntelliJ IDEA version 2020.1 or newer
+- Java SDK version 8 or above
 
-### Build and Run from Source
-1. Clone the repository.
-2. Open the project in IntelliJ IDEA.
-3. Click `Run` to build and start the plugin.
+### Building From Source
+1. Clone the repository to your local machine.
+2. Open the project using IntelliJ IDEA.
+3. Use the `Run` option to build and launch the plugin.
 
 ## Contributing
-We welcome contributions! Please open an issue or submit a pull request for any changes.<br>
-For major changes, please open an issue first to discuss what you would like to change.
+We appreciate and welcome contributions. Feel free to open issues or submit pull requests. For substantial changes, discuss your proposition in an issue first.
 
 ## License
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This plugin is distributed under the MIT License. See the [LICENSE](LICENSE) file for further licensing details.
