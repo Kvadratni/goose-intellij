@@ -41,7 +41,6 @@ class EditorComponentInlaysManager(val editor: EditorImpl) : Disposable {
 
   @RequiresEdt
   fun insertAfter(lineIndex: Int, component: JComponent): Disposable? {
-    if (Disposer.isDisposed(this)) return null
 
     val wrappedComponent = ComponentWrapper(component)
     val offset = editor.document.getLineEndOffset(lineIndex)
@@ -95,7 +94,7 @@ class EditorComponentInlaysManager(val editor: EditorImpl) : Disposable {
 
     init {
       val metrics = editor.getFontMetrics(Font.PLAIN)
-      val spaceWidth = FontLayoutService.getInstance().charWidth2D(metrics, ' '.toInt())
+      val spaceWidth = FontLayoutService.getInstance().charWidth2D(metrics, ' '.code)
       // -4 to create some space
       maximumEditorTextWidth = ceil(spaceWidth * (editor.settings.getRightMargin(editor.project)) - 4).toInt()
       

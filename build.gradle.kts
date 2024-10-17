@@ -2,8 +2,8 @@ import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 
 plugins {
   id("java")
-  id("org.jetbrains.kotlin.jvm") version "1.9.24"
-  id("org.jetbrains.intellij.platform") version "2.0.1"
+  id("org.jetbrains.kotlin.jvm") version "2.1.0-Beta2"
+  id("org.jetbrains.intellij.platform") version "2.1.0"
 }
 
 group = "com.block"
