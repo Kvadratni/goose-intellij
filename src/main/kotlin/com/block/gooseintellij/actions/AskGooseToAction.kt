@@ -29,9 +29,12 @@ class AskGooseToAction : AnAction() {
     val virtualFile = event.getData(CommonDataKeys.VIRTUAL_FILE)
     editor?.let {
       val manager = EditorComponentInlaysManager.from(editor)
+      // Close any existing inline chat panels
+      manager.dispose()
+
       val lineNumber = it.document.getLineNumber(editor.caretModel.offset)
       val inlayRef = Ref<Disposable>()
-      val chatPanel = createInlineChatPanel(it, event, inlayRef)
+      val chatPanel = createInlineChatPanel(it, event, inlayRef)          
       val inlay = manager.insertAfter(lineNumber, chatPanel)
       inlayRef.set(inlay)
       chatPanel.addHierarchyListener { e ->
