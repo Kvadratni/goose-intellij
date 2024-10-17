@@ -2,8 +2,8 @@ package com.block.gooseintellij.actions
 
 import com.block.gooseintellij.components.ChatInputPanel
 import com.block.gooseintellij.components.EditorComponentInlaysManager
+import com.block.gooseintellij.components.RoundedPanel
 import com.block.gooseintellij.utils.GooseIcons.SendToGooseDisabled
-import com.intellij.collaboration.ui.codereview.comment.RoundedPanel
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
