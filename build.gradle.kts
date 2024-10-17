@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "com.block"
-version = "1.2.1"
+version = "1.3.0"
 
 repositories {
   mavenCentral()
@@ -45,7 +45,6 @@ tasks {
 
   patchPluginXml {
     sinceBuild.set("232")
-    untilBuild.set("242.*")
   }
 
   signPlugin {

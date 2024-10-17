@@ -65,8 +65,8 @@ class SelectGooseProfileAction : AnAction() {
   }
 
   private fun getAvailableProviders(): List<String> {
-    val providers = listOf("openai", "anthropic", "databricks")
-    if (GooseUtils.getSqGooseState()!!) {
+    val providers = listOf("openai", "anthropic", "databricks", "ollama")
+    if (GooseUtils.getSqGooseState()) {
       return providers + "block"
     }
     return providers
@@ -84,8 +84,8 @@ class SelectGooseProfileAction : AnAction() {
     private val toolkitToDescriptionMap: Map<String, String>
       get() {
         val commands = mutableListOf("goose", "toolkit", "list")
-        if (GooseUtils.getSqGooseState()!!) {
-          commands.add(0, GooseUtils.getSqPath()!!)
+        if (GooseUtils.getSqGooseState()) {
+          commands.add(0, GooseUtils.getSqPath())
         }
         val toolkitList = ProcessBuilder(commands).start()
         val toolkitToDescriptionMap = mutableMapOf<String, String>()
@@ -117,7 +117,7 @@ class SelectGooseProfileAction : AnAction() {
       )
     )
     private val acceleratorComboBox = ComboBox(arrayOf("gpt-4o-mini", "claude-3-haiku-20240307"))
-    private val moderatorComboBox = ComboBox(arrayOf("passive", "truncate"))
+    private val moderatorComboBox = ComboBox(arrayOf("passive", "truncate", "summarize"))
 
     init {
       title = "Select Goose Profile"

@@ -46,3 +46,6 @@ bin/
 /chain.crt
 /private_encrypted.pem
 /.intellijPlatform/self-update.lock
+
+.goosehints
+.goose
