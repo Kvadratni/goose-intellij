@@ -18,18 +18,21 @@ object GooseUtils {
     private var isGoosePresent: Boolean? = null
     private var sqPath: String? = null
     private var goosePath: String? = null
+    private var toolkitToDescriptionMap: MutableMap<String, String> = mutableMapOf()
+    private var providerList: MutableList<String> = mutableListOf()
+
 
     fun writeCommandToTerminal(connector: TtyConnector, command: String) {
         connector.write(command + "\r\n")
     }
 
-    fun startGooseSession(usingSqGoose: Boolean, gooseTerminal: GooseTerminalWidget?, project: Project) {
+    fun startGooseSession(gooseTerminal: GooseTerminalWidget?, project: Project) {
         val propertiesComponent = PropertiesComponent.getInstance(project)
 
         // Load saved profile from settings
         val savedProfile = propertiesComponent.getValue("goose.selected.profile")
         val profileArgument = savedProfile?.let { "--profile $it" } ?: ""
-        val gooseInstance = if (usingSqGoose) "sq goose" else "goose"
+        val gooseInstance = if(getSqGooseState()) "sq goose" else "goose"
         val savedSessionName = propertiesComponent.getValue("goose.saved.session")
         val sessionCommand = savedSessionName?.let { "resume $it" } ?: "start"
         val command = "$gooseInstance session $sessionCommand $profileArgument"
@@ -51,8 +54,8 @@ object GooseUtils {
 
         try {
             if (isGoosePresent == null) {
-                goosePath = getCommandOutput(arrayOf("which", "goose", "--version"))
-                isGoosePresent = getCommandOutput(arrayOf(goosePath!!)).isNotEmpty()
+                goosePath = getCommandOutput(arrayOf("which", "goose"))
+                isGoosePresent = getCommandOutput(arrayOf(goosePath!!, "--version")).isNotEmpty()
                 logger.info("Goose present: $isGoosePresent, Path: $goosePath")
             }
         } catch (e: Exception) {
@@ -72,10 +75,8 @@ object GooseUtils {
     }
 
     fun promptGooseInstallationIfNeeded(gooseTerminal: GooseTerminalWidget?, project: Project): Boolean {
-        if (isSqGoosePresent!!) {
-            startGooseSession(true, gooseTerminal, project)
-        } else if(isGoosePresent!!) {
-            startGooseSession(false, gooseTerminal, project)
+        if (getSqGooseState() || getGooseState()) {
+            startGooseSession(gooseTerminal, project)
         } else {
             ApplicationManager.getApplication().invokeLater {
                 val installUrl = "https://github.com/square/goose"
@@ -111,6 +112,10 @@ object GooseUtils {
         return sqPath ?: ""
     }
 
+    fun getGoosePath(): String {
+        return goosePath ?: ""
+    }
+
     fun getShell(): Array<String> {
         val command: Array<String>
         val isMacOs = SystemInfo.isMac
@@ -125,5 +130,46 @@ object GooseUtils {
             command = arrayOf("/bin/bash")
         }
         return command
+    }
+
+    fun getToolkitsWithDescriptions(): Map<String, String> {
+        if (toolkitToDescriptionMap.isNotEmpty()) {
+            return toolkitToDescriptionMap
+        }
+        val commands = prependGoosePath(mutableListOf("toolkit", "list"))
+        val toolkitList = ProcessBuilder(commands).start()
+        toolkitToDescriptionMap = mutableMapOf<String, String>()
+        val toolkitLines = toolkitList.inputStream.bufferedReader().readLines().drop(1)
+        toolkitLines.forEach {
+            val (name, description) = it.split(": ", limit = 2)
+            toolkitToDescriptionMap[name.trim().removePrefix("- ")] = description.trim()
+        }
+        return toolkitToDescriptionMap
+    }
+
+
+    fun getAvailableProviders(): List<String> {
+        if (providerList.isNotEmpty()) {
+            return providerList
+        }
+        val commands = prependGoosePath(mutableListOf("providers", "list"))
+        val providersOutput = ProcessBuilder(commands).start()
+        providerList = mutableListOf<String>()
+        val providerLines = providersOutput.inputStream.bufferedReader().readLines()
+        providerLines.filter { it.trim().startsWith("- ") }.forEach {
+            val (name) = it.split(": ", limit = 2)
+            providerList.add(name.trim().removePrefix("- "))
+        }
+        return providerList
+    }
+
+    fun prependGoosePath(commands: MutableList<String>): MutableList<String> {
+        if (getSqGooseState()) {
+            commands.add(0, getSqPath())
+            commands.add(1, "goose")
+        } else {
+            commands.add(0, getGoosePath())
+        }
+        return commands
     }
 }

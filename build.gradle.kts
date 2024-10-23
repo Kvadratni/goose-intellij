@@ -1,4 +1,6 @@
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
+import org.jetbrains.intellij.platform.gradle.models.ProductRelease
+
 
 plugins {
   id("java")
@@ -7,7 +9,7 @@ plugins {
 }
 
 group = "com.block"
-version = "1.3.0"
+version = "1.3.1"
 
 repositories {
   mavenCentral()
@@ -26,7 +28,7 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("org.commonmark:commonmark:0.22.0")
   intellijPlatform {
-    intellijIdeaUltimate("2024.1.5")
+    intellijIdeaUltimate("2024.2.3")
     pluginVerifier()
     zipSigner()
     instrumentationTools()
@@ -45,6 +47,7 @@ tasks {
 
   patchPluginXml {
     sinceBuild.set("232")
+    untilBuild.set("250.*")
   }
 
   signPlugin {

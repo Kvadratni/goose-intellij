@@ -40,11 +40,11 @@ class SelectGooseProfileAction : AnAction() {
     val yaml = Yaml()
     val profiles: MutableMap<String, MutableMap<String, Any>> = yaml.load(profilesFile.readText())
 
-    val availableProviders = getAvailableProviders()
+    val availableProviders = GooseUtils.getAvailableProviders()
 
     val dialog =
       ProfileSelectionDialog(profiles, savedProfile, availableProviders).apply {
-          setSize(800, 800)
+        setSize(800, 800)
       }
     if (dialog.showAndGet()) {
       val selectedProfile = dialog.getSelectedProfile()
@@ -64,14 +64,6 @@ class SelectGooseProfileAction : AnAction() {
     file.writeText(yaml.dump(profiles))
   }
 
-  private fun getAvailableProviders(): List<String> {
-    val providers = listOf("openai", "anthropic", "databricks", "ollama")
-    if (GooseUtils.getSqGooseState()) {
-      return providers + "block"
-    }
-    return providers
-  }
-
 
   private class ProfileSelectionDialog(
     private val profiles: MutableMap<String, MutableMap<String, Any>>,
@@ -81,21 +73,6 @@ class SelectGooseProfileAction : AnAction() {
 
     private val profileList = JBList(profiles.keys.toList())
     private val providerComboBox = ComboBox(availableProviders.toTypedArray())
-    private val toolkitToDescriptionMap: Map<String, String>
-      get() {
-        val commands = mutableListOf("goose", "toolkit", "list")
-        if (GooseUtils.getSqGooseState()) {
-          commands.add(0, GooseUtils.getSqPath())
-        }
-        val toolkitList = ProcessBuilder(commands).start()
-        val toolkitToDescriptionMap = mutableMapOf<String, String>()
-        val toolkitLines = toolkitList.inputStream.bufferedReader().readLines().drop(1)
-        toolkitLines.forEach {
-          val (name, description) = it.split(": ", limit = 2)
-          toolkitToDescriptionMap[name.trim().removePrefix("- ")] = description.trim()
-        }
-        return toolkitToDescriptionMap
-      }
 
     private val toolkitsTableModel: DefaultTableModel =
       object : DefaultTableModel(arrayOf(arrayOf("", mutableListOf<String>())), arrayOf("Toolkit", "Requires")) {
@@ -104,7 +81,8 @@ class SelectGooseProfileAction : AnAction() {
           return if (columnIndex == 0) JComboBox::class.java else MultiSelectComboBox::class.java
         }
       }
-    private var toolkitComboBox: JComboBox<String> = ComboBox(toolkitToDescriptionMap.keys.toTypedArray())
+    private var toolkitComboBox: JComboBox<String> =
+      ComboBox(GooseUtils.getToolkitsWithDescriptions().keys.toTypedArray())
 
     private val toolkitsTable = JBTable(toolkitsTableModel)
     private val newProfileButton = JButton("Add New Profile")
@@ -113,7 +91,7 @@ class SelectGooseProfileAction : AnAction() {
     private val saveButton = JButton("Save and Select")
     private val processorComboBox = ComboBox(
       arrayOf(
-        "gpt-4o", "claude-3-5-sonnet-20240620", "claude-3-opus-20240229", "claude-3-sonnet-20240229"
+        "gpt-4o", "claude-3-5-sonnet-20240620", "claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-5-sonnet-2"
       )
     )
     private val acceleratorComboBox = ComboBox(arrayOf("gpt-4o-mini", "claude-3-haiku-20240307"))
@@ -179,7 +157,7 @@ class SelectGooseProfileAction : AnAction() {
       detailPanel.add(moderatorComboBox, constraints)
       val toolkitEditor = DefaultCellEditor(JComboBox(toolkitComboBox.model))
       (toolkitEditor.component as JComboBox<*>).isEditable = true
-      val requiresEditor = MultiselectCellEditor(toolkitToDescriptionMap.keys.toTypedArray())
+      val requiresEditor = MultiselectCellEditor(GooseUtils.getToolkitsWithDescriptions().keys.toTypedArray())
 
       toolkitsTable.columnModel.getColumn(0).cellEditor = toolkitEditor
       toolkitsTable.columnModel.getColumn(1).cellEditor = requiresEditor
@@ -210,7 +188,12 @@ class SelectGooseProfileAction : AnAction() {
           (profileDetails["toolkits"] as? List<Map<String, Any>>)?.associate { it["name"].toString() to (it["requires"] as? Map<String, Any>)?.keys!!.toList() }
         toolkits?.forEach { (key, value) -> toolkitsTableModel.addRow(arrayOf(key, value)) }
       }
-      toolkitsTableModel.addRow(arrayOf("", emptyList<String>())) // Add an empty row for adding new toolkits
+      toolkitsTableModel.addRow(
+        arrayOf(
+          "",
+          emptyList<String>()
+        )
+      ) // Add an empty row for adding new toolkits
     }
 
     private fun addNewProfile() {
@@ -237,14 +220,35 @@ class SelectGooseProfileAction : AnAction() {
     //save profile action
     override fun doOKAction() {
       val selectedProfile = profileList.selectedValue ?: return
-      providerComboBox.selectedItem?.let { profiles[selectedProfile]?.set("provider", it.toString()) }
-      processorComboBox.selectedItem?.let { profiles[selectedProfile]?.set("processor", it.toString()) }
-      acceleratorComboBox.selectedItem?.let { profiles[selectedProfile]?.set("accelerator", it.toString()) }
-      moderatorComboBox.selectedItem?.let { profiles[selectedProfile]?.set("moderator", it.toString()) }
+      providerComboBox.selectedItem?.let {
+        profiles[selectedProfile]?.set(
+          "provider",
+          it.toString()
+        )
+      }
+      processorComboBox.selectedItem?.let {
+        profiles[selectedProfile]?.set(
+          "processor",
+          it.toString()
+        )
+      }
+      acceleratorComboBox.selectedItem?.let {
+        profiles[selectedProfile]?.set(
+          "accelerator",
+          it.toString()
+        )
+      }
+      moderatorComboBox.selectedItem?.let {
+        profiles[selectedProfile]?.set(
+          "moderator",
+          it.toString()
+        )
+      }
       val toolkitsMap = mutableListOf<Map<String, Any>>()
       for (row in 0 until toolkitsTableModel.rowCount) {
         val toolkit = toolkitsTableModel.getValueAt(row, 0) as String
-        val requiresList = (toolkitsTableModel.getValueAt(row, 1) as? Collection<String>)?.toList() ?: emptyList()
+        val requiresList =
+          (toolkitsTableModel.getValueAt(row, 1) as? Collection<String>)?.toList() ?: emptyList()
         if (toolkit.isNotBlank()) {
           val requiresMap = requiresList.associateWith { it }
           toolkitsMap.add(mapOf("name" to toolkit, "requires" to requiresMap))
