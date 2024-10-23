@@ -16,6 +16,8 @@ class GoosePluginStartupActivity : ProjectActivity {
     override suspend fun execute(project: Project) {
         // Check for Goose and SQ Goose availability and paths
         GooseUtils.checkGooseAvailability()
+        GooseUtils.getAvailableProviders()
+        GooseUtils.getToolkitsWithDescriptions()
 
         // Check for .goosehints file and create it if it does not exist
         val gooseHintsFile = File(project.basePath, ".goosehints")
@@ -58,7 +60,7 @@ class GoosePluginStartupActivity : ProjectActivity {
         GooseTerminalWidgetFactory().createToolWindowContent(project, toolWindow!!)
         gooseTerminal = contentManager?.getContent(0)?.component as? GooseTerminalWidget
         gooseTerminal?.writeToTerminal("Restarting session...")
-        GooseUtils.startGooseSession(true, gooseTerminal, project)
+        GooseUtils.startGooseSession(gooseTerminal, project)
 
         if (!toolWindow.isVisible) {
             toolWindow.activate(null)
