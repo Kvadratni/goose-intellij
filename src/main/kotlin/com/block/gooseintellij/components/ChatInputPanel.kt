@@ -2,20 +2,32 @@ package com.block.gooseintellij.components
 
 import com.block.gooseintellij.utils.GooseIcons
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.ui.IdeBorderFactory
 import com.intellij.ui.JBColor
+import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import javax.swing.*
 import java.awt.*
 import java.awt.event.ActionEvent
 
-class ChatInputPanel(icon: Icon, private val sendAction: (String) -> Unit) :
+private const val MAX_LINE_COUNT = 25
+
+class ChatInputPanel(
+  icon: Icon,
+  private val editor: EditorEx,
+  private val sendAction: (String) -> Unit
+) :
   JPanel(BorderLayout()) {
   private val bd = IdeBorderFactory.createRoundedBorder(9, 1)
+  private val scrollPane: JScrollPane
   private val inputField: JTextArea = JTextArea().apply {
     background = JBColor.background()
     margin = JBUI.insets(10)
+    lineWrap = true
+    wrapStyleWord = true
+    // Enable text wrapping
     // Key bindings for Enter and Shift + Enter
     val inputMap = getInputMap(JComponent.WHEN_FOCUSED)
     val actionMap = actionMap
@@ -92,14 +104,29 @@ class ChatInputPanel(icon: Icon, private val sendAction: (String) -> Unit) :
 
 
     add(iconLabel, BorderLayout.WEST)
-    add(inputField, BorderLayout.CENTER)
+    scrollPane = JBScrollPane(inputField)
+    scrollPane.border = null
+    scrollPane.verticalScrollBarPolicy = ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED
+    val lineHeight = inputField.getFontMetrics(inputField.font).height
+    scrollPane.preferredSize = null
+    scrollPane.maximumSize = Dimension(Int.MAX_VALUE, lineHeight * MAX_LINE_COUNT)
+    add(scrollPane, BorderLayout.CENTER)
     add(sendButton, BorderLayout.EAST)
+    maximumSize = Dimension(Int.MAX_VALUE, lineHeight * MAX_LINE_COUNT)
 
     // Enable/Disable send button based on input text
     inputField.document.addDocumentListener(object : javax.swing.event.DocumentListener {
-        override fun insertUpdate(e: javax.swing.event.DocumentEvent) { toggleSendButton() }
-        override fun removeUpdate(e: javax.swing.event.DocumentEvent) { toggleSendButton() }
-        override fun changedUpdate(e: javax.swing.event.DocumentEvent) { toggleSendButton() }
+      override fun insertUpdate(e: javax.swing.event.DocumentEvent) {
+        toggleSendButton()
+      }
+
+      override fun removeUpdate(e: javax.swing.event.DocumentEvent) {
+        toggleSendButton()
+      }
+
+      override fun changedUpdate(e: javax.swing.event.DocumentEvent) {
+        toggleSendButton()
+      }
     })
 
     // Adjust panel size dynamically based on content
@@ -123,10 +150,11 @@ class ChatInputPanel(icon: Icon, private val sendAction: (String) -> Unit) :
 
   private fun toggleSendButton() {
     sendButton.isEnabled = inputField.text.trim().isNotEmpty()
-    sendButton.icon = if (sendButton.isEnabled) GooseIcons.SendToGoose else GooseIcons.SendToGooseDisabled
+    sendButton.icon =
+      if (sendButton.isEnabled) GooseIcons.SendToGoose else GooseIcons.SendToGooseDisabled
   }
 
-    fun adjustViewport() {
+  fun adjustViewport() {
     val parent = SwingUtilities.getAncestorOfClass(Disposable::class.java, this)
     parent?.validate()
     parent?.revalidate()
@@ -134,17 +162,42 @@ class ChatInputPanel(icon: Icon, private val sendAction: (String) -> Unit) :
   }
 
   fun revalidatePanelSize() {
+    repaint()
+    invalidate()
     SwingUtilities.invokeLater {
+      updateEditorLayout()
+      adjustSizeBasedOnContent()
       revalidate()
       repaint()
       adjustViewport()
     }
   }
 
+  private fun adjustSizeBasedOnContent() {
+    val lineHeight = inputField.getFontMetrics(inputField.font).height
+    val contentHeight = inputField.preferredSize.height
+    val numLines = contentHeight / lineHeight
+
+    if (numLines > MAX_LINE_COUNT) {
+      scrollPane.preferredSize = Dimension(inputField.width, lineHeight * MAX_LINE_COUNT)
+      scrollPane.maximumSize = Dimension(Int.MAX_VALUE, lineHeight * MAX_LINE_COUNT)
+      scrollPane.scrollRectToVisible(Rectangle(0, scrollPane.height, 1, 1))
+    } else {
+      scrollPane.preferredSize = Dimension(inputField.width, contentHeight)
+    }
+    revalidate()
+    repaint()
+  }
+
+  private fun updateEditorLayout() {
+    editor.contentComponent.revalidate()
+    editor.contentComponent.repaint()
+  }
+
   private fun triggerSendAction() {
     val text = inputField.text.trim()
     if (text.isNotEmpty()) {
-      sendAction(text)
+      sendAction(text.replace("\n", " "))
       inputField.text = ""
     }
   }

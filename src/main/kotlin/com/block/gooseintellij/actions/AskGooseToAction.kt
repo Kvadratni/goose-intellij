@@ -34,6 +34,8 @@ class AskGooseToAction : AnAction() {
 
       val lineNumber = it.document.getLineNumber(editor.caretModel.offset)
       val inlayRef = Ref<Disposable>()
+      // Ensure previous inlay components are resized or removed
+      manager.dispose()
       val chatPanel = createInlineChatPanel(it, event, inlayRef)          
       val inlay = manager.insertAfter(lineNumber, chatPanel)
       inlayRef.set(inlay)
@@ -85,7 +87,7 @@ class AskGooseToAction : AnAction() {
       ActionToolbar.DEFAULT_MINIMUM_BUTTON_SIZE
     )
     val psiFile = event.getData(CommonDataKeys.PSI_FILE)
-    val chatInputPanel = ChatInputPanel(SendToGooseDisabled) { userInput ->
+    val chatInputPanel = ChatInputPanel(SendToGooseDisabled, editor) { userInput ->
       val selectedText = editor.selectionModel.selectedText
       val enhancedPromptTemplate = "$userInput. Context: %s in file: $%s"
       sendToGoose(event, enhancedPromptTemplate, selectedText, psiFile?.virtualFile?.path, true)
