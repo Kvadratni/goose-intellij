@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "com.block"
-version = "1.3.2"
+version = "1.3.2.beta2"
 
 repositories {
   mavenCentral()

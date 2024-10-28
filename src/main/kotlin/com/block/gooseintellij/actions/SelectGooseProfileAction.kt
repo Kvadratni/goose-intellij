@@ -21,6 +21,11 @@ import java.awt.GridBagConstraints
 import java.io.File
 import javax.swing.table.DefaultTableModel
 import com.block.gooseintellij.utils.GooseUtils
+import com.intellij.icons.AllIcons
+import com.intellij.ui.JBColor
+import com.intellij.ui.ToolbarDecorator
+import com.intellij.ui.components.IconLabelButton
+import com.intellij.util.ui.UIUtil
 
 class SelectGooseProfileAction : AnAction() {
 
@@ -43,7 +48,7 @@ class SelectGooseProfileAction : AnAction() {
     val availableProviders = GooseUtils.getAvailableProviders()
 
     val dialog =
-      ProfileSelectionDialog(profiles, savedProfile, availableProviders).apply {
+      ProfileSelectionDialog(profiles, savedProfile, availableProviders, project).apply {
         setSize(800, 800)
       }
     if (dialog.showAndGet()) {
@@ -64,18 +69,21 @@ class SelectGooseProfileAction : AnAction() {
     file.writeText(yaml.dump(profiles))
   }
 
-
   private class ProfileSelectionDialog(
     private val profiles: MutableMap<String, MutableMap<String, Any>>,
     savedProfile: String?,
     private val availableProviders: List<String>,
+    private val project: com.intellij.openapi.project.Project
   ) : DialogWrapper(true) {
 
     private val profileList = JBList(profiles.keys.toList())
     private val providerComboBox = ComboBox(availableProviders.toTypedArray())
 
     private val toolkitsTableModel: DefaultTableModel =
-      object : DefaultTableModel(arrayOf(arrayOf("", mutableListOf<String>())), arrayOf("Toolkit", "Requires")) {
+      object : DefaultTableModel(
+        arrayOf(arrayOf("", mutableListOf<String>())),
+        arrayOf("Toolkit", "Requires")
+      ) {
 
         override fun getColumnClass(columnIndex: Int): Class<*> {
           return if (columnIndex == 0) JComboBox::class.java else MultiSelectComboBox::class.java
@@ -85,30 +93,31 @@ class SelectGooseProfileAction : AnAction() {
       ComboBox(GooseUtils.getToolkitsWithDescriptions().keys.toTypedArray())
 
     private val toolkitsTable = JBTable(toolkitsTableModel)
-    private val newProfileButton = JButton("Add New Profile")
-    private val addToolkitButton = JButton("+")
-    private val removeToolkitButton = JButton("-")
+
     private val saveButton = JButton("Save and Select")
     private val processorComboBox = ComboBox(
       arrayOf(
-        "gpt-4o", "claude-3-5-sonnet-20240620", "claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-5-sonnet-2"
+        "gpt-4o",
+        "claude-3-5-sonnet-20240620",
+        "claude-3-opus-20240229",
+        "claude-3-sonnet-20240229",
+        "claude-3-5-sonnet-2"
       )
-    )
-    private val acceleratorComboBox = ComboBox(arrayOf("gpt-4o-mini", "claude-3-haiku-20240307"))
-    private val moderatorComboBox = ComboBox(arrayOf("passive", "truncate", "summarize"))
+    ).apply {
+      isEditable = true
+    }
+    private val acceleratorComboBox = ComboBox(arrayOf("gpt-4o-mini")).apply {
+      isEditable = true
+    }
+    private val moderatorComboBox =
+      ComboBox(arrayOf("passive", "truncate", "summarize", "synopsis")).apply {
+        isEditable = true
+      }
 
     init {
       title = "Select Goose Profile"
       setOKButtonText("Select")
       init()
-
-      addToolkitButton.addActionListener { toolkitsTableModel.addRow(arrayOf("", emptyList<String>())) }
-      removeToolkitButton.addActionListener {
-        val selectedRow = toolkitsTable.selectedRow
-        if (selectedRow != -1) {
-          toolkitsTableModel.removeRow(selectedRow)
-        }
-      }
 
       // Detect changes to enable the save button
       saveButton.isEnabled = false
@@ -124,7 +133,6 @@ class SelectGooseProfileAction : AnAction() {
       }
 
       profileList.addListSelectionListener { updateDetails(profileList.selectedValue) }
-      newProfileButton.addActionListener { addNewProfile(); getButton(okAction)?.isEnabled = true }
       savedProfile?.let { profileList.setSelectedValue(it, true) }
         ?: run { profileList.selectedIndex = 0 }
     }
@@ -132,10 +140,45 @@ class SelectGooseProfileAction : AnAction() {
     override fun createCenterPanel(): JComponent {
       val panel = JPanel(BorderLayout())
 
-      // List panel on the left
-      val listPanel = JPanel(BorderLayout())
-      listPanel.add(JScrollPane(profileList), BorderLayout.CENTER)
-      listPanel.add(newProfileButton, BorderLayout.SOUTH)
+      val listPanel = JPanel(BorderLayout()).apply { border = BorderFactory.createEmptyBorder(0, 0, 0, 10) }
+      listPanel.add(ToolbarDecorator.createDecorator(profileList).setAddAction {
+        addNewProfile()
+        getButton(okAction)?.isEnabled = true
+      }.setRemoveAction {
+        val selectedProfile = profileList.selectedValue
+        if (selectedProfile != null) {
+          val confirmation =
+            Messages.showYesNoDialog(
+              project,
+              "Are you sure you want to delete the profile '$selectedProfile'?",
+              "Delete Profile",
+              Messages.getQuestionIcon()
+            )
+          if (confirmation == Messages.YES) {
+            profiles.remove(selectedProfile)
+            profileList.setListData(profiles.keys.toTypedArray())
+          }
+        }
+      }.addExtraAction(object :
+        AnAction("Copy Profile", "Copy selected profile", AllIcons.Actions.Copy) {
+        override fun actionPerformed(e: AnActionEvent) {
+          val selectedProfile = profileList.selectedValue
+          if (selectedProfile != null) {
+            val profileCopy =
+              profiles[selectedProfile]?.let { it as Map<String, Any> }?.toMutableMap()
+            val newProfileName = JOptionPane.showInputDialog(
+              null,
+              "Enter name for the copied profile:",
+              "Copy Profile",
+              JOptionPane.PLAIN_MESSAGE
+            ) ?: "${selectedProfile}_copy"
+            if (profileCopy != null) {
+              profiles[newProfileName] = profileCopy
+              profileList.setListData(profiles.keys.toTypedArray())
+            }
+          }
+        }
+      }).createPanel())
 
       // Detail panel on the right using GridBagLayout
       val detailPanel = JPanel(GridBagLayout())
@@ -157,18 +200,31 @@ class SelectGooseProfileAction : AnAction() {
       detailPanel.add(moderatorComboBox, constraints)
       val toolkitEditor = DefaultCellEditor(JComboBox(toolkitComboBox.model))
       (toolkitEditor.component as JComboBox<*>).isEditable = true
-      val requiresEditor = MultiselectCellEditor(GooseUtils.getToolkitsWithDescriptions().keys.toTypedArray())
+      val requiresEditor =
+        MultiselectCellEditor(GooseUtils.getToolkitsWithDescriptions().keys.toTypedArray())
 
       toolkitsTable.columnModel.getColumn(0).cellEditor = toolkitEditor
       toolkitsTable.columnModel.getColumn(1).cellEditor = requiresEditor
       toolkitsTable.rowHeight = 30
       toolkitsTable.fillsViewportHeight = true
       toolkitsTable.preferredScrollableViewportSize = Dimension(500, 300)
-      detailPanel.add(JScrollPane(toolkitsTable), constraints)
+
+      toolkitsTable.setRowSelectionAllowed(true)
+      toolkitsTable.setColumnSelectionAllowed(false)
+      toolkitsTable.setSelectionBackground(JBColor.GRAY)
+      toolkitsTable.setSelectionForeground(JBColor.BLACK)
+      detailPanel.add(JLabel("Toolkits:"), constraints)
+      detailPanel.add(ToolbarDecorator.createDecorator(toolkitsTable).setAddAction {
+        toolkitsTableModel.addRow(arrayOf("", emptyList<String>()))
+      }.setRemoveAction {
+        val selectedRow = toolkitsTable.selectedRow
+        if (selectedRow != -1) {
+          toolkitsTableModel.removeRow(selectedRow)
+        }
+      }.createPanel(), constraints)
+      // detailPanel.add(JScrollPane(toolkitsTable), constraints)
       val buttonPanel = JPanel().apply {
-        layout = BoxLayout(this, BoxLayout.LINE_AXIS); add(addToolkitButton); add(
-        removeToolkitButton
-      ); add(saveButton)
+        layout = BoxLayout(this, BoxLayout.LINE_AXIS); add(saveButton)
       }
       detailPanel.add(buttonPanel, constraints)
       panel.add(listPanel, BorderLayout.WEST)
