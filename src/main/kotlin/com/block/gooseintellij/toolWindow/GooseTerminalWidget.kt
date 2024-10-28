@@ -30,11 +30,6 @@ class GooseTerminalWidget(toolWindow: ToolWindow) : javax.swing.JPanel() {
     this.preferredSize = Dimension(300, 600)
   }
 
-  //writes output to terminal
-  fun writeToTerminal(output: String) {
-    writeCommandToTerminal(connector!!, "echo '$output'")
-  }
-
   private fun createTerminal(project: Project, parent: Disposable): JBTerminalWidget {
     val settingsProvider = JBTerminalSystemSettingsProviderBase()
     val terminalWidget = JBTerminalWidget(project, settingsProvider, parent)

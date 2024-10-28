@@ -3,7 +3,7 @@
   <name>Goose</name>
   <vendor email="mnovich@squareup.com">Max Novich</vendor>
   <description><![CDATA[
-    Goose is a programming agent that runs on your machine. You need goose-ai package installed for this to work. goose: https://github.com/square/goose
+    Goose is a programming agent that runs on your machine. You need goose-ai package installed for this to work. goose: https://github.com/block/goose`
   ]]></description>
 
   <depends>com.intellij.modules.platform</depends>
