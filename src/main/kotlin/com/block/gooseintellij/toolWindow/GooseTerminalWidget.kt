@@ -35,7 +35,7 @@ class GooseTerminalWidget(toolWindow: ToolWindow) : javax.swing.JPanel() {
     val terminalWidget = JBTerminalWidget(project, settingsProvider, parent)
     connector = createLocalShellTtyConnector()
     terminalWidget.start(connector)
-    writeCommandToTerminal(connector!!, "cd ${project.basePath}")
+    writeCommandToTerminal(connector!!, "cd ${GooseUtils.getProjectPath(project)}")
     writeCommandToTerminal(connector!!, "export goose=\$(which goose)")
     clearTerminal()
     return terminalWidget
