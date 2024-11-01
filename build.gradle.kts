@@ -1,7 +1,6 @@
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.models.ProductRelease
 
-
 plugins {
   id("java")
   id("org.jetbrains.kotlin.jvm") version "2.1.0-Beta2"
@@ -9,7 +8,7 @@ plugins {
 }
 
 group = "com.block"
-version = "1.3.2.beta2"
+version = "1.4.0"
 
 repositories {
   mavenCentral()
@@ -25,8 +24,10 @@ kotlin {
 }
 
 dependencies {
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-    implementation("org.commonmark:commonmark:0.22.0")
+  implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+  implementation("org.commonmark:commonmark:0.22.0")
+  testImplementation("org.junit.jupiter:junit-jupiter:5.8.1")
+  testImplementation("org.mockito:mockito-core:3.12.4")
   intellijPlatform {
     intellijIdeaUltimate("2024.2.3")
     pluginVerifier()

@@ -1,10 +1,7 @@
 package com.block.gooseintellij.actions
 
-import com.block.gooseintellij.components.ChatInputPanel
-import com.block.gooseintellij.components.EditorComponentInlaysManager
-import com.block.gooseintellij.components.RoundedPanel
-import com.block.gooseintellij.utils.GooseIcons.SendToGooseDisabled
-import com.intellij.icons.AllIcons
+import com.block.gooseintellij.ui.components.editor.EditorComponentInlaysManager
+import com.block.gooseintellij.ui.components.chat.InlineChatPanel
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
@@ -12,15 +9,8 @@ import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.actionSystem.ActionPlaces
-import com.intellij.openapi.actionSystem.ActionToolbar
-import com.intellij.openapi.actionSystem.impl.ActionButton
 import com.intellij.openapi.util.Ref
-import com.intellij.ui.AncestorListenerAdapter
 import javax.swing.*
-import java.awt.BorderLayout
-import java.awt.event.ComponentEvent
-import javax.swing.event.AncestorEvent
 
 class AskGooseToAction : AnAction() {
   override fun actionPerformed(event: AnActionEvent) {
@@ -36,68 +26,23 @@ class AskGooseToAction : AnAction() {
       val inlayRef = Ref<Disposable>()
       // Ensure previous inlay components are resized or removed
       manager.dispose()
-      val chatPanel = createInlineChatPanel(it, event, inlayRef)          
+      
+      val chatPanel = InlineChatPanel(it, event, inlayRef) { userInput ->
+        val selectedText = editor.selectionModel.selectedText
+        val enhancedPromptTemplate = "$userInput. Context: %s in file: $%s"
+        sendToGoose(event, enhancedPromptTemplate, selectedText, event.getData(CommonDataKeys.PSI_FILE)?.virtualFile?.path, true)
+      }
+      
       val inlay = manager.insertAfter(lineNumber, chatPanel)
       inlayRef.set(inlay)
-      chatPanel.addHierarchyListener { e ->
-        if ((e.changeFlags and java.awt.event.HierarchyEvent.DISPLAYABILITY_CHANGED.toLong()) != 0L) {
-            SwingUtilities.invokeLater {
-                chatPanel.revalidate()
-                chatPanel.repaint()
-                it.contentComponent.validate()
-            }
-        }
-      }
-
-      chatPanel.addAncestorListener(object : AncestorListenerAdapter() {
-        override fun ancestorAdded(e: AncestorEvent) {
-            SwingUtilities.invokeLater {
-              chatPanel.revalidate()
-              chatPanel.repaint()
-              val parent = SwingUtilities.getAncestorOfClass(Disposable::class.java, chatPanel)
-              parent?.validate()
-              parent?.revalidate()
-              parent?.repaint()
-            }
-        }
-      })
+      
       val viewport = it.scrollPane.viewport
-      viewport.dispatchEvent(ComponentEvent(viewport, ComponentEvent.COMPONENT_RESIZED))
+      viewport.dispatchEvent(java.awt.event.ComponentEvent(viewport, java.awt.event.ComponentEvent.COMPONENT_RESIZED))
     } ?: virtualFile?.let {
       val userInput = fetchUserInput(project) ?: return
       val enhancedPromptTemplate = "$userInput. Context: file: $%s"
       sendToGoose(event, enhancedPromptTemplate, "", virtualFile.path, false)
     } ?: showErrorMessage(project)
-  }
-
-  private fun createInlineChatPanel(
-    editor: EditorEx,
-    event: AnActionEvent,
-    inlayRef: Ref<Disposable>
-  ): JPanel {
-    val action = object : AnAction({ "Close" }, AllIcons.Actions.Close) {
-      override fun actionPerformed(e: AnActionEvent) {
-        inlayRef.get().dispose()
-      }
-    }
-    val closeButton = ActionButton(
-      action,
-      action.templatePresentation.clone(),
-      ActionPlaces.TOOLBAR,
-      ActionToolbar.DEFAULT_MINIMUM_BUTTON_SIZE
-    )
-    val psiFile = event.getData(CommonDataKeys.PSI_FILE)
-    val chatInputPanel = ChatInputPanel(SendToGooseDisabled, editor) { userInput ->
-      val selectedText = editor.selectionModel.selectedText
-      val enhancedPromptTemplate = "$userInput. Context: %s in file: $%s"
-      sendToGoose(event, enhancedPromptTemplate, selectedText, psiFile?.virtualFile?.path, true)
-      action.actionPerformed(event)
-    }
-
-    return RoundedPanel(BorderLayout()).apply {
-      add(chatInputPanel, BorderLayout.CENTER)
-      add(closeButton, BorderLayout.EAST)
-    }
   }
 
   private fun fetchUserInput(project: Project): String? {

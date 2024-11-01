@@ -1,6 +1,5 @@
 package com.block.gooseintellij.utils
 
-import com.block.gooseintellij.toolWindow.GooseTerminalWidget
 import com.intellij.ide.BrowserUtil
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.application.ApplicationManager

@@ -1,7 +1,7 @@
 package com.block.gooseintellij.actions
 
-import com.block.gooseintellij.toolWindow.GooseTerminalWidget
-import com.block.gooseintellij.toolWindow.GooseTerminalWidgetFactory
+import com.block.gooseintellij.ui.terminal.GooseTerminalWidget
+import com.block.gooseintellij.ui.terminal.GooseTerminalWidgetFactory
 import com.block.gooseintellij.utils.GooseUtils
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.application.ApplicationManager
@@ -32,7 +32,6 @@ class GoosePluginStartupActivity : ProjectActivity {
       gitignoreFile.appendText(System.lineSeparator() + ".goose")
     }
 
-
     ApplicationManager.getApplication().invokeLater {
       val toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Goose Terminal")
       val contentManager = toolWindow?.contentManager
@@ -42,7 +41,9 @@ class GoosePluginStartupActivity : ProjectActivity {
       ProgressManager.getInstance()
         .run(object : Task.Backgroundable(project, "Initializing Goose plugin") {
           override fun run(indicator: com.intellij.openapi.progress.ProgressIndicator) {
-            GooseUtils.promptGooseInstallationIfNeeded(gooseTerminal?.connector!!, project)
+            gooseTerminal?.connector?.let { connector ->
+              GooseUtils.promptGooseInstallationIfNeeded(connector, project)
+            }
           }
         })
     }
@@ -52,26 +53,29 @@ class GoosePluginStartupActivity : ProjectActivity {
     val toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Goose Terminal")
     val contentManager = toolWindow?.contentManager
     val content = contentManager?.getContent(0)
-    var gooseTerminal = content?.component as? GooseTerminalWidget
+    val gooseTerminal = content?.component as? GooseTerminalWidget
 
-    if (gooseTerminal != null) {
-      val connector = gooseTerminal.connector!!
+    gooseTerminal?.connector?.let { connector ->
       val propertiesComponent = PropertiesComponent.getInstance(project)
       propertiesComponent.setValue("goose.saved.session", project.name)
       GooseUtils.writeToTerminal(connector, "exit")
       GooseUtils.writeToTerminal(connector, project.name)
-      contentManager?.removeContent(content!!, true)
+      content?.let { contentManager?.removeContent(it, true) }
     }
 
-    GooseTerminalWidgetFactory().createToolWindowContent(project, toolWindow!!)
-    gooseTerminal = contentManager?.getContent(0)?.component as? GooseTerminalWidget
-    val connector = gooseTerminal?.connector!!
-    GooseUtils.writeToTerminal(connector, "Restarting session...")
-    GooseUtils.startGooseSession(connector, project)
+    toolWindow?.let {
+      GooseTerminalWidgetFactory().createToolWindowContent(project, it)
+      val newContent = contentManager?.getContent(0)
+      val newTerminal = newContent?.component as? GooseTerminalWidget
+      newTerminal?.connector?.let { connector ->
+        GooseUtils.writeToTerminal(connector, "Restarting session...")
+        GooseUtils.startGooseSession(connector, project)
+      }
 
-    if (!toolWindow.isVisible) {
-      toolWindow.activate(null)
-      toolWindow.show()
+      if (!it.isVisible) {
+        it.activate(null)
+        it.show()
+      }
     }
   }
 }

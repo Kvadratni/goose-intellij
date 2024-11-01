@@ -1,10 +1,16 @@
-package com.block.gooseintellij.components
+package com.block.gooseintellij.ui.components.common
 
 import com.intellij.ui.paint.PaintUtil
 import com.intellij.ui.scale.ScaleContext
 import com.intellij.util.ui.GraphicsUtil
 import org.intellij.lang.annotations.MagicConstant
-import java.awt.*
+import java.awt.AWTException
+import java.awt.Dimension
+import java.awt.Graphics
+import java.awt.Graphics2D
+import java.awt.GraphicsConfiguration
+import java.awt.ImageCapabilities
+import java.awt.Transparency
 import java.awt.image.VolatileImage
 
 /**
@@ -30,6 +36,22 @@ internal class VolatileImageBufferingPainter(@MagicConstant(valuesFromClass = Tr
       g2.dispose()
     }
   }
+  
+  private fun paintToVolatileImage(image: VolatileImage, painter: (g2: Graphics2D) -> Unit): Boolean {
+    var iteration = 0
+    do {
+      iteration++
+      val bufferG = image.createGraphics()
+      try {
+        painter(bufferG)
+      }
+      finally {
+        bufferG.dispose()
+      }
+    }
+    while (image.contentsLost() && iteration <= 3)
+    return !image.contentsLost()
+  }
 
   //TODO: recreate buffer on system scale change
   private fun validateAndRecreateBuffer(g2: Graphics2D, bufferSize: Dimension): VolatileImage? {
@@ -48,8 +70,10 @@ internal class VolatileImageBufferingPainter(@MagicConstant(valuesFromClass = Tr
      will always result in a value equal to just scaling.
     */
     val ctx = ScaleContext.create(g2)
-    val widthAligned = PaintUtil.alignIntToInt(bufferSize.width, ctx, PaintUtil.RoundingMode.CEIL, null)
-    val heightAligned = PaintUtil.alignIntToInt(bufferSize.height, ctx, PaintUtil.RoundingMode.CEIL, null)
+    val widthAligned =
+      PaintUtil.alignIntToInt(bufferSize.width, ctx, PaintUtil.RoundingMode.CEIL, null)
+    val heightAligned =
+      PaintUtil.alignIntToInt(bufferSize.height, ctx, PaintUtil.RoundingMode.CEIL, null)
     if (widthAligned <= 0 || heightAligned <= 0) return null
 
     val dc = g2.deviceConfiguration
@@ -71,20 +95,4 @@ internal class VolatileImageBufferingPainter(@MagicConstant(valuesFromClass = Tr
     }?.takeIf {
       it.validate(dc) != VolatileImage.IMAGE_INCOMPATIBLE
     }
-}
-
-private fun paintToVolatileImage(image: VolatileImage, painter: (g2: Graphics2D) -> Unit): Boolean {
-  var iteration = 0
-  do {
-    iteration++
-    val bufferG = image.createGraphics()
-    try {
-      painter(bufferG)
-    }
-    finally {
-      bufferG.dispose()
-    }
-  }
-  while (image.contentsLost() && iteration <= 3)
-  return !image.contentsLost()
 }
