@@ -34,7 +34,7 @@ class InlineChatPanel(
         
         val chatInputPanel = ChatInputPanel(com.block.gooseintellij.utils.GooseIcons.SendToGooseDisabled, editor) { userInput ->
             onSend(userInput)
-            action.actionPerformed(event)
+            com.intellij.openapi.actionSystem.ActionManager.getInstance().tryToExecute(action, event.inputEvent, null, ActionPlaces.UNKNOWN, true)
         }
 
         add(chatInputPanel, BorderLayout.CENTER)
