@@ -3,7 +3,7 @@
   <name>Goose</name>
   <vendor email="mnovich@squareup.com">Max Novich</vendor>
   <description><![CDATA[
-    Goose is a programming agent that runs on your machine. You need goose-ai package installed for this to work. goose: https://github.com/square/goose
+    Goose is a programming agent that runs on your machine. You need goose-ai package installed for this to work. goose: https://github.com/block/goose`
   ]]></description>
 
   <depends>com.intellij.modules.platform</depends>
@@ -64,11 +64,17 @@
   </actions>
 
   <extensions defaultExtensionNs="com.intellij">
+    <applicationService serviceInterface="com.block.gooseintellij.service.ConfigurationService"
+                       serviceImplementation="com.block.gooseintellij.service.impl.ConfigurationServiceImpl"/>
+    <applicationService serviceInterface="com.block.gooseintellij.service.SessionService"
+                       serviceImplementation="com.block.gooseintellij.service.impl.SessionServiceImpl"/>
+    <projectService serviceInterface="com.block.gooseintellij.service.GooseService"
+                   serviceImplementation="com.block.gooseintellij.service.impl.GooseServiceImpl"/>
     <postStartupActivity implementation="com.block.gooseintellij.actions.GoosePluginStartupActivity"/>
     <toolWindow id="Goose Terminal"
         anchor="right"
         icon="com.block.gooseintellij.utils.GooseIcons.GooseWindow"
-        factoryClass="com.block.gooseintellij.toolWindow.GooseTerminalWidgetFactory"/>
+        factoryClass="com.block.gooseintellij.ui.terminal.GooseTerminalWidgetFactory"/>
     <notificationGroup id="Goose Notifications" displayType="BALLOON"/>
   </extensions>
   <applicationListeners>

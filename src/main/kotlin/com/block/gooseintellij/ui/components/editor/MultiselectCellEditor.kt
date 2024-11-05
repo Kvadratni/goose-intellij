@@ -1,4 +1,4 @@
-package com.block.gooseintellij.components
+package com.block.gooseintellij.ui.components.editor
 
 import java.awt.*
 import java.awt.event.ActionEvent

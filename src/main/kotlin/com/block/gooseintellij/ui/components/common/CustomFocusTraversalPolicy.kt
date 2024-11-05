@@ -1,4 +1,4 @@
-package com.block.gooseintellij.components
+package com.block.gooseintellij.ui.components.common
 
 import java.awt.Component
 import java.awt.Container

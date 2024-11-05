@@ -1,5 +1,6 @@
 package com.block.gooseintellij.actions
 
+import com.block.gooseintellij.utils.GooseUtils
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.fileEditor.FileEditorManager
@@ -11,7 +12,7 @@ import java.io.File
 class OpenGooseHintsFileAction : AnAction("Open Goose Hints File") {
     override fun actionPerformed(event: AnActionEvent) {
         val project = event.project ?: return
-        val filePath = project.basePath + "/.goosehints"
+        val filePath = GooseUtils.getProjectPath(project) + "/.goosehints"
         val file = File(filePath)
 
         val virtualFile: VirtualFile? = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(file)

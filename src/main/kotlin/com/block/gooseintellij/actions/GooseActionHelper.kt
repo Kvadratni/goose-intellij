@@ -1,6 +1,6 @@
 package com.block.gooseintellij.actions
 
-import com.block.gooseintellij.toolWindow.GooseTerminalWidget
+import com.block.gooseintellij.ui.terminal.GooseTerminalWidget
 import com.block.gooseintellij.utils.GooseUtils
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.progress.ProgressManager
@@ -32,7 +32,8 @@ object GooseActionHelper {
         }
 
         if (!toolWindow.isVisible) {
-            OpenGooseTerminalAction().actionPerformed(event)
+            toolWindow.activate(null)
+            toolWindow.show()
         }
         
         val contentManager = toolWindow.contentManager

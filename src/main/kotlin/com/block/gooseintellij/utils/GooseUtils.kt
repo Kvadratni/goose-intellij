@@ -1,6 +1,5 @@
 package com.block.gooseintellij.utils
 
-import com.block.gooseintellij.toolWindow.GooseTerminalWidget
 import com.intellij.ide.BrowserUtil
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.application.ApplicationManager
@@ -9,6 +8,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.SystemInfo
 import com.jediterm.terminal.TtyConnector
+import java.io.File
 import java.io.IOException
 
 object GooseUtils {
@@ -25,8 +25,12 @@ object GooseUtils {
     fun writeCommandToTerminal(connector: TtyConnector, command: String) {
         connector.write(command + "\r\n")
     }
+    
+    fun writeToTerminal(connector: TtyConnector, output: String) {
+        writeCommandToTerminal(connector, "echo '$output'")
+    }
 
-    fun startGooseSession(gooseTerminal: GooseTerminalWidget?, project: Project) {
+    fun startGooseSession(connector: TtyConnector, project: Project) {
         val propertiesComponent = PropertiesComponent.getInstance(project)
 
         // Load saved profile from settings
@@ -36,8 +40,8 @@ object GooseUtils {
         val savedSessionName = propertiesComponent.getValue("goose.saved.session")
         val sessionCommand = savedSessionName?.let { "resume $it" } ?: "start"
         val command = "$gooseInstance session $sessionCommand $profileArgument"
-        gooseTerminal?.writeToTerminal("Starting Goose session...")
-        writeCommandToTerminal(gooseTerminal?.connector!!, command)
+        writeToTerminal(connector, "Starting Goose session...")
+        writeCommandToTerminal(connector, command)
     }
 
     fun checkGooseAvailability() {
@@ -74,9 +78,9 @@ object GooseUtils {
         }
     }
 
-    fun promptGooseInstallationIfNeeded(gooseTerminal: GooseTerminalWidget?, project: Project): Boolean {
+    fun promptGooseInstallationIfNeeded(connector: TtyConnector, project: Project): Boolean {
         if (getSqGooseState() || getGooseState()) {
-            startGooseSession(gooseTerminal, project)
+            startGooseSession(connector, project)
         } else {
             ApplicationManager.getApplication().invokeLater {
                 val installUrl = "https://github.com/square/goose"
@@ -92,7 +96,7 @@ object GooseUtils {
                 if (result == Messages.YES) {
                     BrowserUtil.browse(installUrl)
                 } else {
-                    gooseTerminal?.writeToTerminal("Goose installation was canceled by the user.")
+                    writeToTerminal(connector,"Goose installation was canceled by the user.")
                 }
             }
             return false
@@ -171,5 +175,13 @@ object GooseUtils {
             commands.add(0, getGoosePath())
         }
         return commands
+    }
+
+    fun getProjectPath(project: Project): String {
+        val basePath = project.basePath!!
+        if (basePath.endsWith(".ijwb")) {
+            return File(basePath).parent
+        }
+        return basePath
     }
 }

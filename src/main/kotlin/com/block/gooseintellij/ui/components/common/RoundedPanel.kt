@@ -1,4 +1,4 @@
-package com.block.gooseintellij.components
+package com.block.gooseintellij.ui.components.common
 
 import com.intellij.ui.paint.RectanglePainter
 import com.intellij.util.ui.JBInsets
@@ -7,7 +7,7 @@ import java.awt.geom.Path2D
 import java.awt.geom.RoundRectangle2D
 import javax.swing.JPanel
 
-class RoundedPanel constructor(layout: LayoutManager?, private val arcRadius: Int = 8) : JPanel(layout) {
+open class RoundedPanel constructor(layout: LayoutManager?, private val arcRadius: Int = 8) : JPanel(layout) {
   private var bufferingPainter = VolatileImageBufferingPainter(Transparency.TRANSLUCENT)
   private var fillBackground: Boolean = false
 
