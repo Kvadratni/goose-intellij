@@ -12,15 +12,18 @@ import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.ui.JBColor
+import com.intellij.ui.JBSplitter
 import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.components.JBList
 import com.intellij.ui.table.JBTable
+import com.intellij.util.ui.JBUI
 import org.yaml.snakeyaml.DumperOptions
 import org.yaml.snakeyaml.Yaml
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
+import java.awt.Insets
 import javax.swing.*
 import javax.swing.table.DefaultTableModel
 
@@ -94,8 +97,16 @@ class ProfileSelectionDialog(
 
     override fun createCenterPanel(): JComponent {
         val panel = JPanel(BorderLayout())
+        panel.preferredSize = Dimension(800, 600)
+        panel.minimumSize = Dimension(600, 400)
 
-        val listPanel = JPanel(BorderLayout()).apply { border = BorderFactory.createEmptyBorder(0, 0, 0, 10) }
+        // Create split pane for better resizing
+        val splitPane = JBSplitter(false, 0.3f)
+
+        val listPanel = JPanel(BorderLayout()).apply { 
+            border = BorderFactory.createEmptyBorder(0, 0, 0, 10)
+            minimumSize = Dimension(150, 200)
+        }
         listPanel.add(ToolbarDecorator.createDecorator(profileList).setAddAction {
             addNewProfile()
             getButton(okAction)?.isEnabled = true
@@ -138,9 +149,21 @@ class ProfileSelectionDialog(
         // Detail panel on the right using GridBagLayout
         val detailPanel = JPanel(GridBagLayout())
         val constraints = GridBagConstraints().apply {
+            fill = GridBagConstraints.HORIZONTAL
+            anchor = GridBagConstraints.NORTHWEST
+            weightx = 1.0
+            insets = JBUI.insets(5)
+            gridx = 0
+            gridy = GridBagConstraints.RELATIVE
+        }
+        
+        // Special constraints for the table
+        val tableConstraints = GridBagConstraints().apply {
             fill = GridBagConstraints.BOTH
             anchor = GridBagConstraints.NORTHWEST
             weightx = 1.0
+            weighty = 1.0  // Let table take up remaining vertical space
+            insets = JBUI.insets(5)
             gridx = 0
             gridy = GridBagConstraints.RELATIVE
         }
@@ -168,6 +191,11 @@ class ProfileSelectionDialog(
         toolkitsTable.setColumnSelectionAllowed(false)
         toolkitsTable.setSelectionBackground(JBColor.GRAY)
         toolkitsTable.setSelectionForeground(JBColor.BLACK)
+
+        toolkitsTable.setRowSelectionAllowed(true)
+        toolkitsTable.setColumnSelectionAllowed(false)
+        toolkitsTable.setSelectionBackground(JBColor.GRAY)
+        toolkitsTable.setSelectionForeground(JBColor.BLACK)
         detailPanel.add(JLabel("Toolkits:"), constraints)
         detailPanel.add(ToolbarDecorator.createDecorator(toolkitsTable).setAddAction {
             toolkitsTableModel.addRow(arrayOf("", emptyList<String>()))
@@ -176,13 +204,18 @@ class ProfileSelectionDialog(
             if (selectedRow != -1) {
                 toolkitsTableModel.removeRow(selectedRow)
             }
-        }.createPanel(), constraints)
+        }.createPanel(), tableConstraints)  // Use table-specific constraints
+        
         val buttonPanel = JPanel().apply {
-            layout = BoxLayout(this, BoxLayout.LINE_AXIS); add(saveButton)
+            layout = BoxLayout(this, BoxLayout.LINE_AXIS)
+            add(saveButton)
         }
         detailPanel.add(buttonPanel, constraints)
-        panel.add(listPanel, BorderLayout.WEST)
-        panel.add(detailPanel, BorderLayout.CENTER)
+        
+        splitPane.firstComponent = listPanel
+        splitPane.secondComponent = detailPanel
+        
+        panel.add(splitPane, BorderLayout.CENTER)
         return panel
     }
 
