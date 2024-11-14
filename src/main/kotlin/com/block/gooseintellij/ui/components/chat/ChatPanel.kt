@@ -3,68 +3,39 @@ package com.block.gooseintellij.ui.components.chat
 import com.block.gooseintellij.service.GooseChatService
 import com.block.gooseintellij.utils.GooseIcons
 import com.intellij.openapi.editor.ex.EditorEx
+import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
-import com.intellij.ui.IdeBorderFactory
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
-import java.awt.event.KeyAdapter
-import java.awt.event.KeyEvent
-import javax.swing.BorderFactory
-import javax.swing.JPanel
-import javax.swing.JTextArea
-import javax.swing.ScrollPaneConstants
-import javax.swing.SwingUtilities
+import java.awt.Component
+import java.awt.FlowLayout
+import javax.swing.*
+import javax.swing.BoxLayout
 
 class ChatPanel(
     private val project: Project,
 ) : JPanel(BorderLayout()) {
     private val chatService: GooseChatService = project.getService(GooseChatService::class.java)
     
-    // Track the current conversation state
-    private var currentConversation = StringBuilder()
-    private var currentResponse = StringBuilder()
-    
-    private val outputArea: JTextArea = JTextArea().apply {
-        isEditable = false
-        lineWrap = true
-        wrapStyleWord = true
+    // Message container with BoxLayout for vertical stacking
+    private val messagesPanel = JPanel().apply {
+        layout = BoxLayout(this, BoxLayout.Y_AXIS)
         background = JBColor.background()
-        margin = JBUI.insets(10)
-        font = JBUI.Fonts.create("Monospaced", 12)
     }
     
-    private val scrollPane = JBScrollPane(outputArea).apply {
+    private val scrollPane = JBScrollPane(messagesPanel).apply {
         verticalScrollBarPolicy = ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED
         horizontalScrollBarPolicy = ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
         border = JBUI.Borders.empty()
         viewport.background = JBColor.background()
     }
 
-    private val inputPanel = JTextArea().apply{
-        isEditable = true
-        lineWrap = true
-        wrapStyleWord = true
-        background = JBColor.background()
-        margin = JBUI.insets(10)
-        val padding = IdeBorderFactory.createEmptyBorder(JBUI.insets(10))
-        border = BorderFactory.createCompoundBorder(padding, JBUI.Borders.customLine(JBColor.border(), 1, 0, 0, 0))
-        toolTipText = "Type a message and press Enter to send"
-        font = JBUI.Fonts.create("Monospaced", 12)
-        addKeyListener(object : KeyAdapter() {
-            override fun keyPressed(e: KeyEvent) {
-                if (e.keyCode == KeyEvent.VK_ENTER && e.modifiers == 0) {
-                    e.consume()
-                    val message = text.trim()
-                    if (message.isNotEmpty()) {
-                        handleSendMessage(message)
-                        text = ""
-                    }
-                }
-            }
-        })
-    }
+    private val inputPanel = ChatInputPanel(
+        icon = GooseIcons.SendToGoose,
+        sendAction = { message -> handleSendMessage(message) }
+    )
 
     init {
         isOpaque = true
@@ -98,25 +69,27 @@ class ChatPanel(
     }
 
     private fun handleSendMessage(message: String) {
-        // Add user message to conversation
-        currentConversation.append("You: ").append(message).append("\n\n")
-        currentResponse.setLength(0) // Clear the current response
+        // Add user message bubble
+        addMessageBubble(message, true)
         
-        // Update display with user message and start assistant message
-        updateDisplay()
-        currentConversation.append("Goose: ")
-        updateDisplay()
-        
+        // Start streaming response
         chatService.sendMessage(
             message = message,
             streaming = true,
             streamHandler = object : GooseChatService.StreamHandler {
+                private var responseBubble: ChatBubbleComponent? = null
+                
                 override fun onText(text: String) {
                     SwingUtilities.invokeLater {
-                        // Update current response with new text
-                        currentResponse.setLength(0)
-                        currentResponse.append(text)
-                        updateDisplay()
+                        if (responseBubble == null) {
+                            responseBubble = addMessageBubble(text, false)
+                            messagesPanel.revalidate()
+                            messagesPanel.repaint()
+                        } else {
+                            // Update with minimal repaints
+                            updateLastMessageBubble(text)
+                        }
+                        scrollToBottom()
                     }
                 }
                 
@@ -126,9 +99,7 @@ class ChatPanel(
                 
                 override fun onError(error: String) {
                     SwingUtilities.invokeLater {
-                        currentResponse.setLength(0)
-                        currentResponse.append("Error: ").append(error)
-                        updateDisplay()
+                        addMessageBubble("Error: $error", false)
                     }
                 }
                 
@@ -138,36 +109,58 @@ class ChatPanel(
                 
                 override fun onFinish(finishReason: String, usage: Map<String, Int>) {
                     SwingUtilities.invokeLater {
-                        // Add the final response to the conversation
-                        currentConversation.append(currentResponse).append("\n\n")
-                        currentResponse.setLength(0)
-                        updateDisplay()
+                        responseBubble = null
+                        scrollToBottom()
                     }
                 }
             }
         ).exceptionally { e ->
-            currentResponse.setLength(0)
-            currentResponse.append("Error sending message: ").append(e.message)
-            updateDisplay()
+            addMessageBubble("Error sending message: ${e.message}", false)
             null
         }
     }
 
-    private fun appendSystemMessage(message: String) {
-        currentConversation.append("System: ").append(message).append("\n\n")
-        updateDisplay()
-    }
-    
-    private fun updateDisplay() {
-        // Combine current conversation with current response
-        val fullText = StringBuilder(currentConversation)
-        if (currentResponse.isNotEmpty()) {
-            fullText.append(currentResponse)
+    private fun addMessageBubble(message: String, isUserMessage: Boolean): ChatBubbleComponent {
+        val wrapper = JPanel(FlowLayout(if (isUserMessage) FlowLayout.RIGHT else FlowLayout.LEFT, 0, 2)).apply {
+            isOpaque = false
+            alignmentX = Component.LEFT_ALIGNMENT
         }
         
-        // Update the output area
-        outputArea.text = fullText.toString()
-        outputArea.caretPosition = outputArea.document.length
+        val bubble = ChatBubbleComponent(message, isUserMessage)
+        wrapper.add(bubble)
+        
+        messagesPanel.add(wrapper)
+        messagesPanel.revalidate()
+        messagesPanel.repaint()
+        scrollToBottom()
+        
+        return bubble
+    }
+    
+    private fun updateLastMessageBubble(text: String) {
+        val lastComponent = messagesPanel.components.lastOrNull()
+        if (lastComponent is JPanel) {
+            val bubble = lastComponent.components.firstOrNull { it is ChatBubbleComponent }
+            if (bubble is ChatBubbleComponent) {
+                bubble.setText(text)
+                lastComponent.revalidate()
+                lastComponent.repaint()
+                messagesPanel.revalidate()
+                messagesPanel.repaint()
+                scrollToBottom()
+            }
+        }
+    }
+
+    private fun appendSystemMessage(message: String) {
+        addMessageBubble(message, false)
+    }
+    
+    private fun scrollToBottom() {
+        SwingUtilities.invokeLater {
+            val vertical = scrollPane.verticalScrollBar
+            vertical.value = vertical.maximum
+        }
     }
 
     fun dispose() {

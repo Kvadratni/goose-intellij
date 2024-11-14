@@ -122,25 +122,147 @@ interface StreamHandler {
     fun onFinish(finishReason: String, usage: Map<String, Int>)
 }
 
-private fun parseStreamPart(line: String): StreamPart? {
-    if (line.isEmpty()) return null
-    
-    val typeId = line.substringBefore(':')
-    val content = line.substringAfter(':')
-    
-    return when (typeId) {
-        "0" -> StreamPart.Text(content.trim('"').replace("\\n", "\n")) // Text part with newline handling
-        "2" -> StreamPart.Data(gson.fromJson(content, Array<Any>::class.java).toList()) // Data part
-        "3" -> StreamPart.Error(content.trim('"')) // Error part
-        "8" -> StreamPart.MessageAnnotation(gson.fromJson(content, Map::class.java) as Map<String, Any>) // Message annotation
-        "d" -> { // Finish message
-            val finishData = gson.fromJson(content, Map::class.java) as Map<String, Any>
-            StreamPart.FinishMessage(
-                finishReason = finishData["finishReason"] as String,
-                usage = finishData["usage"] as Map<String, Int>
-            )
+// Class to maintain stream parsing state using a state machine approach
+private class StreamParser {
+    private enum class State {
+        EXPECT_TYPE,      // Expecting a new type identifier or continuation of current type
+        IN_TEXT_CONTENT,  // Processing text content (with or without type identifier)
+        IN_JSON_CONTENT   // Processing JSON content for data/finish messages
+    }
+
+    private var state = State.EXPECT_TYPE
+    private var currentType: String? = null
+    private var textBuffer = StringBuilder()
+    private var jsonBuffer = StringBuilder()
+    private val gson = Gson()
+
+    companion object {
+        private val TYPE_PATTERN = Regex("^([0-9d]):")
+        private val ESCAPE_PATTERN = Regex("""\\[nrt"]""")
+    }
+
+    fun parseLine(line: String): StreamPart? {
+        if (line.isEmpty()) {
+            return when (state) {
+                State.IN_TEXT_CONTENT -> {
+                    textBuffer.append('\n')
+                    StreamPart.Text(textBuffer.toString())
+                }
+                State.IN_JSON_CONTENT -> {
+                    jsonBuffer.append('\n')
+                    null
+                }
+                else -> null
+            }
         }
-        else -> null
+
+        // Check for new message type
+        val typeMatch = TYPE_PATTERN.find(line)
+        if (typeMatch != null) {
+            val newType = typeMatch.groupValues[1]
+            val content = line.substring(typeMatch.value.length)
+            
+            // Reset buffers on type change
+            if (newType != currentType) {
+                textBuffer.clear()
+                jsonBuffer.clear()
+            }
+            
+            currentType = newType
+            return when (newType) {
+                "0" -> {
+                    state = State.IN_TEXT_CONTENT
+                    handleTextContent(content, true)
+                }
+                "2" -> {
+                    state = State.IN_JSON_CONTENT
+                    jsonBuffer.append(content)
+                    tryParseJson()
+                }
+                "3" -> {
+                    state = State.EXPECT_TYPE
+                    StreamPart.Error(content.trim('"'))
+                }
+                "8" -> {
+                    state = State.IN_JSON_CONTENT
+                    jsonBuffer.append(content)
+                    tryParseJson()
+                }
+                "d" -> {
+                    state = State.IN_JSON_CONTENT
+                    jsonBuffer.append(content)
+                    tryParseJson()
+                }
+                else -> null
+            }
+        }
+        
+        // Handle content continuation
+        return when (state) {
+            State.IN_TEXT_CONTENT -> handleTextContent(line)
+            State.IN_JSON_CONTENT -> {
+                jsonBuffer.append(line)
+                tryParseJson()
+            }
+            else -> null
+        }
+    }
+
+    private fun handleTextContent(text: String, isNewType: Boolean = false): StreamPart {
+        // Handle escaped characters
+        val unescaped = if (text.contains(ESCAPE_PATTERN)) {
+            text.replace("\\n", "\n")
+                .replace("\\r", "\r")
+                .replace("\\t", "\t")
+                .replace("\\\"", "\"")
+        } else {
+            text
+        }
+
+        if (isNewType) {
+            // For new type messages, clear buffer and set new content
+            textBuffer.setLength(0)
+            textBuffer.append(unescaped)
+            return StreamPart.Text(unescaped)
+        } else {
+            // For continuations, append with newline and return full buffer
+            textBuffer.append('\n').append(unescaped)
+            return StreamPart.Text(textBuffer.toString())
+        }
+    }
+
+    private fun tryParseJson(): StreamPart? {
+        try {
+            when (currentType) {
+                "2" -> {
+                    state = State.EXPECT_TYPE
+                    return StreamPart.Data(gson.fromJson(jsonBuffer.toString(), Array<Any>::class.java).toList())
+                }
+                "8" -> {
+                    state = State.EXPECT_TYPE
+                    return StreamPart.MessageAnnotation(gson.fromJson(jsonBuffer.toString(), Map::class.java) as Map<String, Any>)
+                }
+                "d" -> {
+                    state = State.EXPECT_TYPE
+                    val finishData = gson.fromJson(jsonBuffer.toString(), Map::class.java) as Map<String, Any>
+                    return StreamPart.FinishMessage(
+                        finishReason = finishData["finishReason"] as String,
+                        usage = finishData["usage"] as Map<String, Int>
+                    )
+                }
+            }
+        } catch (e: com.google.gson.JsonSyntaxException) {
+            // If JSON is incomplete, continue accumulating
+            return null
+        }
+        return null
+    }
+
+    fun reset() {
+        state = State.EXPECT_TYPE
+        currentType = null
+        textBuffer.clear()
+        jsonBuffer.clear()
     }
 }
 
@@ -195,9 +317,11 @@ fun sendMessage(
             var usage: Map<String, Int>? = null
             var error: String? = null
 
+            val parser = StreamParser()
             BufferedReader(InputStreamReader(connection.inputStream)).use { reader ->
                 reader.lineSequence().forEach { line ->
-                    val part = parseStreamPart(line)
+                    if(line.isEmpty()) streamHandler?.onText("\\n")
+                    val part = parser.parseLine(line)
                     when (part) {
                         is StreamPart.Text -> {
                             // For streaming, send directly to handler without accumulating
@@ -219,6 +343,7 @@ fun sendMessage(
                             finishReason = part.finishReason
                             usage = part.usage
                             streamHandler?.onFinish(part.finishReason, part.usage)
+                            parser.reset() // Reset parser state after finish
                         }
                         null -> {} // Ignore empty lines
                     }

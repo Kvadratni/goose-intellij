@@ -3,7 +3,7 @@ package com.block.gooseintellij.viewmodel
 import com.intellij.openapi.editor.ex.EditorEx
 import javax.swing.JTextArea
 
-class ChatViewModel(private val editor: EditorEx) {
+class ChatViewModel(private val editor: EditorEx? = null) {
     fun handleTextChange(inputField: JTextArea) {
         updateEditorLayout()
     }
@@ -16,8 +16,10 @@ class ChatViewModel(private val editor: EditorEx) {
     }
     
     private fun updateEditorLayout() {
-        editor.contentComponent.revalidate()
-        editor.contentComponent.repaint()
+        editor?.contentComponent?.let { component ->
+            component.revalidate()
+            component.repaint()
+        }
     }
     
     companion object {

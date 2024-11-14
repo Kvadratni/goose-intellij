@@ -17,7 +17,7 @@ import java.awt.event.ActionEvent
 
 class ChatInputPanel(
     icon: Icon,
-    private val editor: EditorEx,
+    private val editor: EditorEx? = null,
     private val sendAction: (String) -> Unit
 ) : JPanel(BorderLayout()) {
     private val viewModel: ChatViewModel = ChatViewModel(editor)
