@@ -156,6 +156,30 @@ class ChatPanel(
         addMessageBubble(message, false)
     }
     
+    fun appendMessage(message: String, isUserMessage: Boolean) {
+        SwingUtilities.invokeLater {
+            if (!isUserMessage) {
+                // Try to find the last message bubble
+                val lastComponent = messagesPanel.components.lastOrNull()
+                if (lastComponent is JPanel) {
+                    val bubble = lastComponent.components.firstOrNull { it is ChatBubbleComponent } as? ChatBubbleComponent
+                    if (bubble != null && !bubble.isUserMessage) {
+                        // Found a non-user bubble, append to it
+                        bubble.setText(bubble.getText() + message)
+                        lastComponent.revalidate()
+                        lastComponent.repaint()
+                        messagesPanel.revalidate()
+                        messagesPanel.repaint()
+                        scrollToBottom()
+                        return@invokeLater
+                    }
+                }
+            }
+            // If we can't append or it's a user message, create a new bubble
+            addMessageBubble(message, isUserMessage)
+        }
+    }
+    
     private fun scrollToBottom() {
         SwingUtilities.invokeLater {
             val vertical = scrollPane.verticalScrollBar

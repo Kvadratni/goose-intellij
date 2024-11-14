@@ -18,12 +18,6 @@
         <add-to-group group-id="ToolsMenu"/>
     </group>
 
-    <action id="com.block.gooseintellij.SelectGooseProfileAction"
-            class="com.block.gooseintellij.actions.SelectGooseProfileAction"
-        icon="com.intellij.icons.ExpUiIcons.General.Settings"
-            text="Select Goose Profile">
-      <add-to-group group-id="com.block.gooseintellij.goose" anchor="first"/>
-    </action>
     <action id="com.block.gooseintellij.actions.AskGooseToGenerateTestsForFileAction"
         class="com.block.gooseintellij.actions.AskGooseToGenerateTestsForFileAction"
         icon="com.block.gooseintellij.utils.GooseIcons.GooseAction"
@@ -41,20 +35,7 @@
         text="Ask Goose to Generate Tests" icon="com.block.gooseintellij.utils.GooseIcons.GooseAction">
       <add-to-group group-id="EditorPopupMenu" anchor="last"/>
     </action>
-    
-    <action id="com.block.gooseintellij.actions.OpenGooseHintsFileAction"
-        class="com.block.gooseintellij.actions.OpenGooseHintsFileAction"
-        icon="com.intellij.icons.ExpUiIcons.FileTypes.Config"
-        text="Open Goose Hints File">
-      <add-to-group group-id="com.block.gooseintellij.goose" anchor="last"/>
-    </action>
 
-    <action id="com.block.gooseintellij.actions.ClearCurrentSessionAction"
-        class="com.block.gooseintellij.actions.ClearCurrentSessionAction"
-        icon="com.intellij.icons.ExpUiIcons.General.Delete"
-        text="Clear Current Session">
-      <add-to-group group-id="com.block.gooseintellij.goose" anchor="last"/>
-    </action>
     <action id="com.block.gooseintellij.actions.AskGooseTo"
         class="com.block.gooseintellij.actions.AskGooseToAction"
         text="Ask goose to ..." icon="com.block.gooseintellij.utils.GooseIcons.GooseAction">
@@ -68,9 +49,9 @@
                        serviceImplementation="com.block.gooseintellij.service.impl.ConfigurationServiceImpl"/>
     <applicationService serviceInterface="com.block.gooseintellij.service.SessionService"
                        serviceImplementation="com.block.gooseintellij.service.impl.SessionServiceImpl"/>
+    <projectService serviceImplementation="com.block.gooseintellij.service.ChatPanelService"/>
     <projectService serviceInterface="com.block.gooseintellij.service.GooseService"
                    serviceImplementation="com.block.gooseintellij.service.impl.GooseServiceImpl"/>
-    <postStartupActivity implementation="com.block.gooseintellij.actions.GoosePluginStartupActivity"/>
     <postStartupActivity implementation="com.block.gooseintellij.actions.GooseChatStartupActivity"/>
     <toolWindow id="Goose Terminal"
         anchor="right"

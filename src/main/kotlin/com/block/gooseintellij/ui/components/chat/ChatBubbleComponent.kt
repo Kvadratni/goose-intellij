@@ -16,7 +16,7 @@ import javax.swing.text.DefaultEditorKit
 
 class ChatBubbleComponent(
     message: String,
-    isUserMessage: Boolean,
+    val isUserMessage: Boolean,
     private val timestamp: LocalDateTime = LocalDateTime.now()
 ) : RoundedPanel(BorderLayout(), 12) {
 
@@ -165,6 +165,10 @@ class ChatBubbleComponent(
             area.text = text.replace("\\n", System.getProperty("line.separator") ?: "\n")
             area.caretPosition = 0  // Reset scroll position to top
         }
+    }
+    
+    fun getText(): String {
+        return messageArea?.text ?: ""
     }
     
     override fun getPreferredSize(): Dimension {

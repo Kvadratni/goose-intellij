@@ -3,7 +3,7 @@ import org.jetbrains.intellij.platform.gradle.models.ProductRelease
 
 plugins {
   id("java")
-  id("org.jetbrains.kotlin.jvm") version "2.1.0-Beta2"
+  id("org.jetbrains.kotlin.jvm") version "1.9.22"
   id("org.jetbrains.intellij.platform") version "2.1.0"
 }
 
@@ -20,7 +20,7 @@ repositories {
 
 // Set the JVM language level used to build the project.
 kotlin {
-  jvmToolchain(17)
+  jvmToolchain(21)
 }
 
 dependencies {
@@ -39,15 +39,15 @@ dependencies {
 tasks {
   // Set the JVM compatibility versions
   withType<JavaCompile> {
-    sourceCompatibility = "17"
-    targetCompatibility = "17"
+    sourceCompatibility = "21"
+    targetCompatibility = "21"
   }
   withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-    kotlinOptions.jvmTarget = "17"
+    kotlinOptions.jvmTarget = "21"
   }
 
   patchPluginXml {
-    sinceBuild.set("232.8")
+    sinceBuild.set("242.0")
     untilBuild.set("243.*")
   }
 

@@ -1,5 +1,6 @@
 package com.block.gooseintellij.ui.components.chat
 
+import com.block.gooseintellij.service.ChatPanelService
 import com.block.gooseintellij.ui.components.common.RoundedPanel
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.AnAction
@@ -16,9 +17,12 @@ import javax.swing.*
 class InlineChatPanel(
     editor: EditorEx,
     event: AnActionEvent,
-    inlayRef: Ref<Disposable>,
-    onSend: (String) -> Unit
+    private val inlayRef: Ref<Disposable>
 ) : RoundedPanel(BorderLayout()) {
+    private var messageHandler: ((String) -> Unit)? = null
+    private val project = event.project!!
+    private val chatPanelService = ChatPanelService.getInstance(project)
+    
     init {
         val action = object : AnAction({ "Close" }, AllIcons.Actions.Close) {
             override fun actionPerformed(e: AnActionEvent) {
@@ -33,8 +37,7 @@ class InlineChatPanel(
         )
         
         val chatInputPanel = ChatInputPanel(com.block.gooseintellij.utils.GooseIcons.SendToGooseDisabled, editor) { userInput ->
-            onSend(userInput)
-            com.intellij.openapi.actionSystem.ActionManager.getInstance().tryToExecute(action, event.inputEvent, null, ActionPlaces.UNKNOWN, true)
+            messageHandler?.invoke(userInput)
         }
 
         add(chatInputPanel, BorderLayout.CENTER)
@@ -65,4 +68,19 @@ class InlineChatPanel(
             override fun ancestorMoved(e: javax.swing.event.AncestorEvent) {}
         })
     }
+    
+    fun setMessageHandler(handler: (String) -> Unit) {
+        messageHandler = { userInput ->
+            // First post user message to main chat panel
+            chatPanelService.appendMessage(userInput, true)
+            // Then handle the message
+            handler(userInput)
+            // Close the inline panel after sending
+            SwingUtilities.invokeLater {
+                inlayRef.get()?.dispose()
+            }
+        }
+    }
+    
+    // Removed unused response methods since responses go directly to main chat panel
 }
