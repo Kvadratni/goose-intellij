@@ -71,11 +71,16 @@
     <projectService serviceInterface="com.block.gooseintellij.service.GooseService"
                    serviceImplementation="com.block.gooseintellij.service.impl.GooseServiceImpl"/>
     <postStartupActivity implementation="com.block.gooseintellij.actions.GoosePluginStartupActivity"/>
+    <postStartupActivity implementation="com.block.gooseintellij.actions.GooseChatStartupActivity"/>
     <toolWindow id="Goose Terminal"
         anchor="right"
         icon="com.block.gooseintellij.utils.GooseIcons.GooseWindow"
         factoryClass="com.block.gooseintellij.ui.terminal.GooseTerminalWidgetFactory"/>
     <notificationGroup id="Goose Notifications" displayType="BALLOON"/>
+    <toolWindow id="Goose Chat"
+        anchor="right"
+        icon="com.block.gooseintellij.utils.GooseIcons.GooseWindow"
+        factoryClass="com.block.gooseintellij.ui.chat.GooseChatToolWindowFactory"/>
   </extensions>
   <applicationListeners>
     <listener class="com.block.gooseintellij.state.GoosePluginStateListener" topic="com.intellij.ide.plugins.PluginStateListener"/>
