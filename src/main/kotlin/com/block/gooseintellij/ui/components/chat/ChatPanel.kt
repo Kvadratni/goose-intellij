@@ -1,6 +1,7 @@
 package com.block.gooseintellij.ui.components.chat
 
 import com.block.gooseintellij.service.GooseChatService
+import com.block.gooseintellij.ui.components.common.LoadingIndicator
 import com.block.gooseintellij.utils.GooseIcons
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.fileEditor.FileEditorManager
@@ -18,11 +19,19 @@ class ChatPanel(
     private val project: Project,
 ) : JPanel(BorderLayout()) {
     private val chatService: GooseChatService = project.getService(GooseChatService::class.java)
+    val loadingIndicator = LoadingIndicator()
     
     // Message container with BoxLayout for vertical stacking
     private val messagesPanel = JPanel().apply {
         layout = BoxLayout(this, BoxLayout.Y_AXIS)
         background = JBColor.background()
+    }
+    
+    // Wrapper panel for loading indicator with FlowLayout for center alignment
+    private val loadingPanel = JPanel(FlowLayout(FlowLayout.CENTER)).apply {
+        isOpaque = false
+        add(loadingIndicator)
+        alignmentX = Component.LEFT_ALIGNMENT
     }
     
     private val scrollPane = JBScrollPane(messagesPanel).apply {
@@ -72,6 +81,15 @@ class ChatPanel(
         // Add user message bubble
         addMessageBubble(message, true)
         
+        // Show loading indicator
+        loadingIndicator.startLoading()
+        if (!messagesPanel.components.contains(loadingPanel)) {
+            messagesPanel.add(loadingPanel)
+            messagesPanel.revalidate()
+            messagesPanel.repaint()
+            scrollToBottom()
+        }
+        
         // Start streaming response
         chatService.sendMessage(
             message = message,
@@ -110,6 +128,11 @@ class ChatPanel(
                 override fun onFinish(finishReason: String, usage: Map<String, Int>) {
                     SwingUtilities.invokeLater {
                         responseBubble = null
+                        // Hide loading indicator
+                        loadingIndicator.stopLoading()
+                        messagesPanel.remove(loadingPanel)
+                        messagesPanel.revalidate()
+                        messagesPanel.repaint()
                         scrollToBottom()
                     }
                 }

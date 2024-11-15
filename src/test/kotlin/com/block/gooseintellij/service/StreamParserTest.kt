@@ -1,9 +1,8 @@
 package com.block.gooseintellij.service
 
-import org.junit.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.Assertions.*
+import com.block.gooseintellij.service.GooseChatService.StreamPart
 
 class StreamParserTest {
     @Test
@@ -13,31 +12,18 @@ class StreamParserTest {
         // Single line message
         val part1 = parser.parseLine("0:Hello")
         assertNotNull(part1)
-        assertEquals("Hello", (part1 as GooseChatService.StreamPart.Text).content)
+        assertTrue(part1 is StreamPart.Text)
+        assertEquals("Hello", (part1 as StreamPart.Text).content)
         
         // Multi-line message
         val part2 = parser.parseLine("0:First line")
         val part3 = parser.parseLine("Second line")
         assertNotNull(part2)
         assertNotNull(part3)
-        assertEquals("First line", (part2 as GooseChatService.StreamPart.Text).content)
-        assertEquals("First line\nSecond line", (part3 as GooseChatService.StreamPart.Text).content)
-    }
-    
-    @Test
-    fun `test counting sequence`() {
-        val parser = GooseChatService.StreamParser()
-        val lines = (1..15).map { "0:$it\n" }
-        
-        var lastContent = ""
-        lines.forEach { line ->
-            val part = parser.parseLine(line)
-            assertNotNull(part)
-            assertTrue(part is GooseChatService.StreamPart.Text)
-            part as GooseChatService.StreamPart.Text
-            assertEquals(it.toString(), part.content.trim())
-            lastContent = part.content
-        }
+        assertTrue(part2 is StreamPart.Text)
+        assertTrue(part3 is StreamPart.Text)
+        assertEquals("First line", (part2 as StreamPart.Text).content)
+        assertEquals("First line\nSecond line", (part3 as StreamPart.Text).content)
     }
     
     @Test
@@ -47,14 +33,15 @@ class StreamParserTest {
         // Data message
         val dataPart = parser.parseLine("2:[1,2,3]")
         assertNotNull(dataPart)
-        assertTrue(dataPart is GooseChatService.StreamPart.Data)
-        assertEquals(listOf(1.0, 2.0, 3.0), (dataPart as GooseChatService.StreamPart.Data).content)
+        assertTrue(dataPart is StreamPart.Data)
+        assertEquals(listOf(1.0, 2.0, 3.0), (dataPart as StreamPart.Data).content)
         
         // Finish message
         val finishPart = parser.parseLine("d:{\"finishReason\":\"stop\",\"usage\":{\"prompt_tokens\":10,\"completion_tokens\":20}}")
         assertNotNull(finishPart)
-        assertTrue(finishPart is GooseChatService.StreamPart.FinishMessage)
-        assertEquals("stop", (finishPart as GooseChatService.StreamPart.FinishMessage).finishReason)
+        assertTrue(finishPart is StreamPart.FinishMessage)
+        assertEquals("stop", (finishPart as StreamPart.FinishMessage).finishReason)
+        assertEquals(mapOf("prompt_tokens" to 10, "completion_tokens" to 20), finishPart.usage)
     }
     
     @Test
@@ -62,8 +49,8 @@ class StreamParserTest {
         val parser = GooseChatService.StreamParser()
         val part = parser.parseLine("3:Error occurred")
         assertNotNull(part)
-        assertTrue(part is GooseChatService.StreamPart.Error)
-        assertEquals("Error occurred", (part as GooseChatService.StreamPart.Error).message)
+        assertTrue(part is StreamPart.Error)
+        assertEquals("Error occurred", (part as StreamPart.Error).message)
     }
     
     @Test
@@ -74,8 +61,8 @@ class StreamParserTest {
         parser.parseLine("0:First line")
         val emptyPart = parser.parseLine("")
         assertNotNull(emptyPart)
-        assertTrue(emptyPart is GooseChatService.StreamPart.Text)
-        assertEquals("First line\n", (emptyPart as GooseChatService.StreamPart.Text).content)
+        assertTrue(emptyPart is StreamPart.Text)
+        assertEquals("First line\n", (emptyPart as StreamPart.Text).content)
         
         // Empty line outside text content should be ignored
         parser.reset()

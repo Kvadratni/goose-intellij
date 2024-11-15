@@ -12,6 +12,7 @@ import kotlinx.coroutines.withContext
 import java.nio.file.Path
 import kotlin.io.path.exists
 import kotlin.io.path.createDirectories
+import kotlin.io.path.deleteIfExists
 
 class GooseChatStartupActivity : ProjectActivity {
     private val logger = Logger.getInstance(GooseChatStartupActivity::class.java)
@@ -34,6 +35,8 @@ class GooseChatStartupActivity : ProjectActivity {
             val tempDir = Path.of(System.getProperty("java.io.tmpdir"), "goose-intellij")
             val binaryPath = tempDir.resolve("goosed")
             val tempFilePath = tempDir.resolve("goosed.tmp")
+            binaryPath.deleteIfExists()
+            tempFilePath.deleteIfExists()
             
             // Create directory if it doesn't exist
             try {
@@ -43,16 +46,8 @@ class GooseChatStartupActivity : ProjectActivity {
                 throw e
             }
 
-            // Check if we already have a valid binary
-            if (binaryPath.exists()) {
-                logger.info("Found existing valid goosed binary at: $binaryPath")
-                project.putUserData(GOOSED_BINARY_PATH_KEY, binaryPath.toString())
-                return@withContext
-            }
-
-            // If we get here, we need to create or replace the binary
             try {
-                // Write to temporary file first
+                // Always write to temporary file first
                 resourceStream.use { input ->
                     Files.copy(input, tempFilePath, StandardCopyOption.REPLACE_EXISTING)
                 }
@@ -60,11 +55,10 @@ class GooseChatStartupActivity : ProjectActivity {
                 // Set executable permissions
                 tempFilePath.toFile().setExecutable(true, false)
                 
-                // Attempt atomic move
+                // Attempt atomic move to replace existing binary
                 Files.move(tempFilePath, binaryPath, 
                     StandardCopyOption.REPLACE_EXISTING,
                     StandardCopyOption.ATOMIC_MOVE)
-                
                 
                 project.putUserData(GOOSED_BINARY_PATH_KEY, binaryPath.toString())
                 logger.info("Successfully initialized goosed binary at: $binaryPath")
@@ -82,6 +76,7 @@ class GooseChatStartupActivity : ProjectActivity {
             throw e
         }
     }
+
 
     companion object {
         val GOOSED_BINARY_PATH_KEY = com.intellij.openapi.util.Key<String>("goosed.binary.path")

@@ -8,6 +8,8 @@ object GooseIcons {
 
   @JvmField
   val GooseAction = IconLoader.getIcon("/icons/actionIcon.svg", javaClass)
+  @JvmField
+  val GooseMenu = IconLoader.getIcon("/icons/menuIcon.svg", javaClass)
 
   val SendToGoose = IconLoader.getIcon("/icons/send.svg", javaClass)
   val SendToGooseDisabled = IconLoader.getIcon("/icons/send_disabled.svg", javaClass)

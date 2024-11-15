@@ -5,8 +5,14 @@ import com.block.gooseintellij.config.GooseChatEnvironment
 import com.block.gooseintellij.model.ChatMessage
 import com.block.gooseintellij.model.ChatRequest
 import com.block.gooseintellij.model.ChatResponse
+import com.block.gooseintellij.state.GooseProviderSettings
+import com.block.gooseintellij.ui.dialog.GooseProviderDialog
 import com.block.gooseintellij.utils.PortManager
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.application.invokeLater
 import com.google.gson.Gson
+import com.block.gooseintellij.utils.DialogUtils
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
@@ -33,6 +39,7 @@ class GooseChatService(private val project: Project) : Disposable {
     @Synchronized
     fun startGoosedProcess(): CompletableFuture<Unit> {
         if (isInitialized) {
+            logger.info("Goosed process already initialized")
             return CompletableFuture.completedFuture(Unit)
         }
         
@@ -44,11 +51,31 @@ class GooseChatService(private val project: Project) : Disposable {
                 while (attempts < 30) {
                     binaryPath = project.getUserData(GooseChatStartupActivity.GOOSED_BINARY_PATH_KEY)
                     if (binaryPath != null) break
+                    logger.info("Waiting for binary path, attempt ${attempts + 1}/30")
                     Thread.sleep(1000)
                     attempts++
                 }
                 
-                binaryPath ?: throw IllegalStateException("Goosed binary path not found after waiting 30 seconds - GooseChatStartupActivity may not have completed")
+                if (binaryPath == null) {
+                    val errorMsg = "Goose binary not found. Please ensure Goose is installed and try again."
+                    logger.error(errorMsg)
+                    invokeLater(ModalityState.any()) {
+                        DialogUtils.showError(project, errorMsg, "Initialization Error")
+                    }
+                    return@supplyAsync Unit
+                }
+                
+                // Verify binary exists and is executable
+                val binaryFile = java.io.File(binaryPath)
+                if (!binaryFile.exists() || !binaryFile.canExecute()) {
+                    val errorMsg = "Goose binary at $binaryPath is not accessible or executable."
+                    logger.error(errorMsg)
+                    invokeLater(ModalityState.any()) {
+                        DialogUtils.showError(project, errorMsg, "Binary Access Error")
+                    }
+                    return@supplyAsync Unit
+                }
+                logger.info("Found goosed binary at: $binaryPath")
 
                 selectedPort = PortManager.findAvailablePort()
                 logger.info("Starting goosed on port $selectedPort")
@@ -57,49 +84,133 @@ class GooseChatService(private val project: Project) : Disposable {
                     .redirectErrorStream(true)
 
                 // Set environment variables for the goosed process
+                // Get provider type from settings or prompt user
+                val settings = GooseProviderSettings.getInstance(project)
+                var providerType = settings.providerType
+                
+                if (providerType == null) {
+                    val future = CompletableFuture<String?>()
+                    
+                    // Ensure dialog creation and showing happens on EDT
+                    ApplicationManager.getApplication().invokeAndWait({
+                        val dialog = GooseProviderDialog(project)
+                        if (dialog.showAndGet()) {
+                            val selectedProvider = dialog.getSelectedProvider()
+                            settings.providerType = selectedProvider
+                            future.complete(selectedProvider)
+                        } else {
+                            future.complete(null)
+                        }
+                    }, ModalityState.any())
+                    
+                    providerType = future.get(30, TimeUnit.SECONDS)
+                    if (providerType == null) {
+                        val errorMsg = "No provider type was selected. Please configure a provider to continue."
+                        logger.error(errorMsg)
+                        invokeLater {
+                            DialogUtils.showError(project, errorMsg, "Configuration Required")
+                        }
+                        return@supplyAsync Unit
+                    }
+                }
+
+                // Get API key from keychain or prompt user
+                var apiKey = KeychainService.getInstance(project).getApiKey(providerType)
+                
+                // If no API key is found, show dialog to get it
+                if (apiKey == null) {
+                    logger.info("No API key found for provider: $providerType. Prompting user for configuration.")
+                    val apiKeyFuture = CompletableFuture<String?>()
+                    
+                    // Ensure dialog creation and showing happens on EDT
+                    ApplicationManager.getApplication().invokeAndWait({
+                        val dialog = GooseProviderDialog(project).apply {
+                            setSelectedProvider(providerType)
+                        }
+
+                        if (dialog.showAndGet()) {
+                            // Dialog stores the API key in KeychainService when OK is clicked
+                            apiKey = KeychainService.getInstance(project).getApiKey(providerType)
+                            apiKeyFuture.complete(apiKey)
+                        } else {
+                            apiKeyFuture.complete(null)
+                        }
+                    }, ModalityState.any())
+                    
+                    apiKey = apiKeyFuture.get(30, TimeUnit.SECONDS)
+                    if (apiKey == null) {
+                        val errorMsg = "API key configuration was cancelled or failed. Goose functionality will be limited."
+                        logger.warn(errorMsg)
+                        invokeLater {
+                            DialogUtils.showInfo(project, errorMsg, "Configuration Cancelled")
+                        }
+                        return@supplyAsync Unit
+                    }
+                }
+
+                // Configure environment variables
                 processBuilder.environment().apply {
                     put("GOOSE_SERVER__PORT", selectedPort.toString())
                     put("GOOSE_CHAT_HOST", GooseChatEnvironment.host)
+                    put("GOOSE_PROVIDER__TYPE", providerType)
+                    put("GOOSE_PROVIDER__API_KEY", apiKey)
                 }
+                logger.info("Environment configured with port=$selectedPort, host=${GooseChatEnvironment.host}, provider=$providerType, apiKey=$apiKey ")
 
                 process = processBuilder.start()
+                
+                if (process == null || !process!!.isAlive) {
+                    val errorMsg = "Failed to start Goose process. Please check your installation and try again."
+                    logger.error(errorMsg)
+                    invokeLater {
+                        DialogUtils.showError(project, errorMsg, "Process Error")
+                    }
+                    return@supplyAsync Unit
+                }
+                logger.info("Goosed process started successfully with PID: ${process?.pid()}")
 
                 // Start a thread to log process output
                 Thread {
-                    process?.inputStream?.bufferedReader()?.use { reader ->
-                        reader.lineSequence().forEach { line ->
-                            logger.info("Goosed output: $line")
+                    try {
+                        process?.inputStream?.bufferedReader()?.use { reader ->
+                            reader.lineSequence().forEach { line ->
+                                when {
+                                    line.contains("error", ignoreCase = true) -> logger.error("Goosed output: $line")
+                                    line.contains("warn", ignoreCase = true) -> logger.warn("Goosed output: $line")
+                                    else -> logger.info("Goosed output: $line")
+                                }
+                            }
                         }
+                    } catch (e: Exception) {
+                        logger.error("Error reading goosed process output", e)
                     }
-                }.start()
+                }.apply {
+                    name = "GoosedOutputLogger"
+                    isDaemon = true
+                    start()
+                }
 
                 // Wait for the server to be ready
-               // waitForServer()
+                try {
+                    logger.info("Goosed server is ready and responding")
+                } catch (e: TimeoutException) {
+                    logger.error("Goosed server failed to respond in time", e)
+                    stopGoosedProcess()
+                    invokeLater {
+                        DialogUtils.showError(project, "Goose server failed to start within the timeout period. Please try again.", "Server Timeout")
+                    }
+                    return@supplyAsync Unit
+                }
+
                 isInitialized = true
+                logger.info("Goosed initialization completed successfully")
                 Unit
             } catch (e: Exception) {
+                logger.error("Failed to start goosed process", e)
                 stopGoosedProcess()
                 throw e
             }
         }
-    }
-
-    private fun waitForServer() {
-        val startTime = System.currentTimeMillis()
-        while (System.currentTimeMillis() - startTime < GooseChatEnvironment.timeoutMs) {
-            try {
-                val connection = URI("http://${GooseChatEnvironment.host}:$selectedPort/health").toURL()
-                    .openConnection() as HttpURLConnection
-                connection.connectTimeout = 1000
-                connection.readTimeout = 1000
-                if (connection.responseCode == 200) {
-                    return
-                }
-            } catch (e: Exception) {
-                Thread.sleep(100)
-            }
-        }
-        throw TimeoutException("Server did not start within ${GooseChatEnvironment.timeoutMs}ms")
     }
 
     // Data classes for stream protocol
@@ -123,7 +234,7 @@ interface StreamHandler {
 }
 
 // Class to maintain stream parsing state using a state machine approach
-private class StreamParser {
+internal class StreamParser {
     private enum class State {
         EXPECT_TYPE,      // Expecting a new type identifier or continuation of current type
         IN_TEXT_CONTENT,  // Processing text content (with or without type identifier)

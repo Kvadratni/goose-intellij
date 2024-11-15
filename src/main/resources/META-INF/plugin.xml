@@ -14,31 +14,31 @@
            text="Goose"
            popup="true"
            description="Goose settings"
-           icon="com.block.gooseintellij.utils.GooseIcons.GooseAction">
+           icon="com.block.gooseintellij.utils.GooseIcons.GooseMenu">
         <add-to-group group-id="ToolsMenu"/>
     </group>
 
     <action id="com.block.gooseintellij.actions.AskGooseToGenerateTestsForFileAction"
         class="com.block.gooseintellij.actions.AskGooseToGenerateTestsForFileAction"
-        icon="com.block.gooseintellij.utils.GooseIcons.GooseAction"
+        icon="com.block.gooseintellij.utils.GooseIcons.GooseMenu"
         text="Ask Goose to Generate Tests for File">
       <add-to-group group-id="ProjectViewPopupMenu" anchor="after"  relative-to-action="com.block.gooseintellij.actions.AskGooseToFile"/>
     </action>
     <action id="com.block.gooseintellij.actions.AskGooseToFile"
         class="com.block.gooseintellij.actions.AskGooseToAction"
-        text="Ask Goose To ..." icon="com.block.gooseintellij.utils.GooseIcons.GooseAction">
+        text="Ask Goose To ..." icon="com.block.gooseintellij.utils.GooseIcons.GooseMenu">
       <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
       <keyboard-shortcut keymap="$default" first-keystroke="alt G" />
     </action>
     <action id="com.block.gooseintellij.actions.AskGooseToGenerateTestsAction"
         class="com.block.gooseintellij.actions.AskGooseToGenerateTestsAction"
-        text="Ask Goose to Generate Tests" icon="com.block.gooseintellij.utils.GooseIcons.GooseAction">
+        text="Ask Goose to Generate Tests" icon="com.block.gooseintellij.utils.GooseIcons.GooseMenu">
       <add-to-group group-id="EditorPopupMenu" anchor="last"/>
     </action>
 
     <action id="com.block.gooseintellij.actions.AskGooseTo"
         class="com.block.gooseintellij.actions.AskGooseToAction"
-        text="Ask goose to ..." icon="com.block.gooseintellij.utils.GooseIcons.GooseAction">
+        text="Ask goose to ..." icon="com.block.gooseintellij.utils.GooseIcons.GooseMenu">
       <add-to-group group-id="EditorPopupMenu" anchor="last"/>
       <keyboard-shortcut keymap="$default" first-keystroke="alt G" />
     </action>
@@ -49,14 +49,12 @@
                        serviceImplementation="com.block.gooseintellij.service.impl.ConfigurationServiceImpl"/>
     <applicationService serviceInterface="com.block.gooseintellij.service.SessionService"
                        serviceImplementation="com.block.gooseintellij.service.impl.SessionServiceImpl"/>
+    <projectService serviceImplementation="com.block.gooseintellij.service.KeychainService"/>
     <projectService serviceImplementation="com.block.gooseintellij.service.ChatPanelService"/>
     <projectService serviceInterface="com.block.gooseintellij.service.GooseService"
                    serviceImplementation="com.block.gooseintellij.service.impl.GooseServiceImpl"/>
+    <projectService serviceImplementation="com.block.gooseintellij.state.GooseProviderSettings"/>
     <postStartupActivity implementation="com.block.gooseintellij.actions.GooseChatStartupActivity"/>
-    <toolWindow id="Goose Terminal"
-        anchor="right"
-        icon="com.block.gooseintellij.utils.GooseIcons.GooseWindow"
-        factoryClass="com.block.gooseintellij.ui.terminal.GooseTerminalWidgetFactory"/>
     <notificationGroup id="Goose Notifications" displayType="BALLOON"/>
     <toolWindow id="Goose Chat"
         anchor="right"
