@@ -1,7 +1,6 @@
 package com.block.gooseintellij.ui.components.chat
 
 import com.block.gooseintellij.ui.components.common.RoundedPanel
-import com.block.gooseintellij.ui.components.common.VolatileImageBufferingPainter
 import com.block.gooseintellij.utils.MarkdownRenderer
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBScrollPane
@@ -13,7 +12,6 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import javax.swing.*
 import javax.swing.border.EmptyBorder
-import javax.swing.text.DefaultEditorKit
 
 class ChatBubbleComponent(
     message: String,
@@ -152,15 +150,15 @@ class ChatBubbleComponent(
         return Color(r, g, b, a)
     }
     
-    fun setText(text: String) {
-        messageArea?.let { area ->
-            MarkdownRenderer.setMarkdownContent(area, text)
-            area.caretPosition = 0  // Reset scroll position to top
+    fun setText(text: String, append: Boolean = false) {
+        messageArea.let { area ->
+            MarkdownRenderer.setMarkdownContent(area, text, append)
+            area.caretPosition = area.document.length  // Move to end for streaming
         }
     }
     
     fun getText(): String {
-        return messageArea?.text ?: ""
+        return messageArea.text ?: ""
     }
     
     override fun getPreferredSize(): Dimension {

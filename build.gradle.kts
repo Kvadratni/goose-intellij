@@ -25,7 +25,7 @@ kotlin {
 
 dependencies {
   implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-  implementation("org.commonmark:commonmark:0.22.0")
+  implementation("org.jetbrains:markdown:0.5.0")
   testImplementation("org.junit.jupiter:junit-jupiter:5.8.1")
   testImplementation("org.mockito:mockito-core:3.12.4")
   intellijPlatform {
@@ -44,6 +44,14 @@ tasks {
   }
   withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
     kotlinOptions.jvmTarget = "21"
+  }
+  
+  test {
+    useJUnitPlatform()
+    testLogging {
+      events("passed", "skipped", "failed")
+      showStandardStreams = true
+    }
   }
 
   patchPluginXml {

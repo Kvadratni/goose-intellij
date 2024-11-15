@@ -1,26 +1,22 @@
 package com.block.gooseintellij.utils
 
-import org.junit.Test
-import org.junit.Assert.*
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Test
 import java.io.IOException
 import java.net.ServerSocket
-import java.net.DatagramSocket
-import java.net.InetSocketAddress
 
 class PortManagerTest {
     @Test
     fun testFindAvailablePort() {
         val port = PortManager.findAvailablePort()
-        assertTrue("Port should be in valid range", port in 1024..65535)
+        assertTrue(port in 1024..65535)
         
         // Port should be marked as used
-        assertFalse("Port should not be available after allocation", 
-            PortManager.isPortAvailable(port))
+        assertFalse(PortManager.isPortAvailable(port))
         
         // Release and verify it becomes available
         PortManager.releasePort(port)
-        assertTrue("Port should be available after release",
-            PortManager.isPortAvailable(port))
+        assertTrue(PortManager.isPortAvailable(port))
     }
     
     @Test
@@ -32,13 +28,11 @@ class PortManagerTest {
             val usedPort = serverSocket.localPort
             
             // Verify PortManager detects it as unavailable
-            assertFalse("Port should be detected as in use",
-                PortManager.isPortAvailable(usedPort))
+            assertFalse(PortManager.isPortAvailable(usedPort))
                 
             // Verify findAvailablePort skips this port
             val newPort = PortManager.findAvailablePort()
-            assertNotEquals("Should not allocate in-use port", 
-                usedPort, newPort)
+            assertNotEquals(usedPort, newPort)
         } finally {
             serverSocket?.close()
         }
@@ -50,8 +44,7 @@ class PortManagerTest {
             Thread {
                 try {
                     val port = PortManager.findAvailablePort()
-                    assertTrue("Port should be in valid range", 
-                        port in 1024..65535)
+                    assertTrue(port in 1024..65535)
                     Thread.sleep(100) // Simulate some work
                     PortManager.releasePort(port)
                 } catch (e: IOException) {

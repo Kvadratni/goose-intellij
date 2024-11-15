@@ -28,6 +28,8 @@ import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 
+private const val NEWLINE = "\\n"
+
 @Service(Service.Level.PROJECT)
 class GooseChatService(private val project: Project) : Disposable {
     private val logger = Logger.getInstance(GooseChatService::class.java)
@@ -320,9 +322,9 @@ internal class StreamParser {
     }
 
     private fun handleTextContent(text: String, isNewType: Boolean = false): StreamPart {
-        // Handle escaped characters
+        // First handle escaped characters
         val unescaped = if (text.contains(ESCAPE_PATTERN)) {
-            text.replace("\\n", "\n")
+            text.replace(NEWLINE, "\n")
                 .replace("\\r", "\r")
                 .replace("\\t", "\t")
                 .replace("\\\"", "\"")
@@ -330,14 +332,39 @@ internal class StreamParser {
             text
         }
 
+        // Handle wrapping quotes
+        var unwrapped = when {
+            // Handle empty message with quotes ("""" -> "")
+            unescaped.matches(Regex("^\"*$")) -> {
+                val quoteCount = unescaped.count { it == '"' }
+                "\"".repeat(quoteCount / 2)
+            }
+            // Handle wrapped quotes while preserving internal quotes
+            unescaped.startsWith("\"") && unescaped.endsWith("\"") -> {
+                var result = unescaped
+                while (result.length >= 2 && result.startsWith("\"") && result.endsWith("\"")) {
+                    // Only unwrap if we have matching outer quotes
+                    val innerContent = result.substring(1, result.length - 1)
+                    // Stop if removing more quotes would affect internal quoted content
+                    if (innerContent.count { it == '"' } % 2 != 0) break
+                    result = innerContent
+                }
+                result
+            }
+            else -> unescaped
+        }
+        if (unwrapped == "\"") {
+            unwrapped = "\n"
+        }
+
         if (isNewType) {
             // For new type messages, clear buffer and set new content
             textBuffer.setLength(0)
-            textBuffer.append(unescaped)
-            return StreamPart.Text(unescaped)
+            textBuffer.append(unwrapped)
+            return StreamPart.Text(unwrapped)
         } else {
             // For continuations, append with newline and return full buffer
-            textBuffer.append('\n').append(unescaped)
+            textBuffer.append('\n').append(unwrapped)
             return StreamPart.Text(textBuffer.toString())
         }
     }
@@ -431,10 +458,15 @@ fun sendMessage(
             val parser = StreamParser()
             BufferedReader(InputStreamReader(connection.inputStream)).use { reader ->
                 reader.lineSequence().forEach { line ->
-                    if(line.isEmpty()) streamHandler?.onText("\\n")
+                    if(line.isEmpty()) streamHandler?.onText(NEWLINE)
                     val part = parser.parseLine(line)
                     when (part) {
                         is StreamPart.Text -> {
+                            if(part.content.isEmpty()) {
+                                streamHandler?.onText(NEWLINE)
+                                // Only accumulate for final response
+                                responseBuilder.append(NEWLINE)
+                            }
                             // For streaming, send directly to handler without accumulating
                             streamHandler?.onText(part.content)
                             // Only accumulate for final response

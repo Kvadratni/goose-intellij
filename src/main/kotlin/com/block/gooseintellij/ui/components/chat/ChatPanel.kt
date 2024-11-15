@@ -75,13 +75,11 @@ class ChatPanel(
                 private var responseBubble: ChatBubbleComponent? = null
                 
                 override fun onText(text: String) {
-                    SwingUtilities.invokeLater {
-                        if (responseBubble == null) {
-                            responseBubble = addMessageBubble(text, false)
-                        } else {
-                            // Update with minimal repaints
-                            updateLastMessageBubble(text)
-                        }
+                    if (responseBubble == null) {
+                        responseBubble = addMessageBubble(text, false)
+                    } else {
+                        // Update with minimal repaints
+                        responseBubble?.setText(text, append = true)
                     }
                 }
                 
@@ -124,16 +122,6 @@ class ChatPanel(
         messagesContainer.addMessageComponent(wrapper)
         return bubble
     }
-    
-    private fun updateLastMessageBubble(text: String) {
-        val lastComponent = messagesContainer.getMessagesPanel().components.lastOrNull()
-        if (lastComponent is JPanel) {
-            val bubble = lastComponent.components.firstOrNull { it is ChatBubbleComponent }
-            if (bubble is ChatBubbleComponent) {
-                bubble.setText(text)
-            }
-        }
-    }
 
     private fun appendSystemMessage(message: String) {
         addMessageBubble(message, false)
@@ -147,13 +135,12 @@ class ChatPanel(
                 if (lastComponent is JPanel) {
                     val bubble = lastComponent.components.firstOrNull { it is ChatBubbleComponent } as? ChatBubbleComponent
                     if (bubble != null && !bubble.isUserMessage) {
-                        // Found a non-user bubble, append to it
-                        bubble.setText(bubble.getText() + message)
+                        bubble.setText(message, true)
                         return@invokeLater
                     }
                 }
             }
-            // If we can't append or it's a user message, create a new bubble
+            // If we can't append, or it's a user message, create a new bubble
             addMessageBubble(message, isUserMessage)
         }
     }
