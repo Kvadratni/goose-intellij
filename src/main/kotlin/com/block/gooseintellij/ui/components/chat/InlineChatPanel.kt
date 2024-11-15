@@ -73,6 +73,7 @@ class InlineChatPanel(
         messageHandler = { userInput ->
             // First post user message to main chat panel
             chatPanelService.appendMessage(userInput, true)
+            chatPanelService.showLoadingIndicator()
             // Then handle the message
             handler(userInput)
             // Close the inline panel after sending

@@ -10,6 +10,7 @@ import javax.swing.SwingUtilities
 @Service(Service.Level.PROJECT)
 class ChatPanelService(private val project: Project) {
     private var chatPanel: ChatPanel? = null
+    private var isLoading: Boolean = false
 
     fun getChatPanel(): ChatPanel {
         if (chatPanel == null) {
@@ -26,6 +27,24 @@ class ChatPanelService(private val project: Project) {
             // Show the tool window if not visible
             val toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Goose Chat")
             toolWindow?.show()
+        }
+    }
+
+    fun showLoadingIndicator() {
+        if (isLoading) return
+        isLoading = true
+        SwingUtilities.invokeLater {
+            val panel = getChatPanel()
+            panel.showLoadingIndicator()
+        }
+    }
+
+    fun hideLoadingIndicator() {
+        if (!isLoading) return
+        isLoading = false
+        SwingUtilities.invokeLater {
+            val panel = getChatPanel()
+            panel.hideLoadingIndicator()
         }
     }
 

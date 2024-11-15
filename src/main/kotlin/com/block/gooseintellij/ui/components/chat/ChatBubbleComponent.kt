@@ -2,6 +2,7 @@ package com.block.gooseintellij.ui.components.chat
 
 import com.block.gooseintellij.ui.components.common.RoundedPanel
 import com.block.gooseintellij.ui.components.common.VolatileImageBufferingPainter
+import com.block.gooseintellij.utils.MarkdownRenderer
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.ui.JBUI
@@ -46,7 +47,7 @@ class ChatBubbleComponent(
 
     private var isHovered = false
     
-    private var messageArea: JTextArea
+    private var messageArea: JEditorPane
     private var parentWidth: Int = 0
     
     init {
@@ -72,22 +73,14 @@ class ChatBubbleComponent(
             border = EmptyBorder(CONTENT_PADDING, CONTENT_PADDING, CONTENT_PADDING, CONTENT_PADDING)
         }
         
-        // Create a non-editable text area for the message
-        messageArea = JTextArea(message).apply {
-            isEditable = false
-            lineWrap = true
-            wrapStyleWord = true
+        // Create a Markdown-enabled editor pane for the message
+        messageArea = MarkdownRenderer.createMarkdownPane().apply {
             background = background
-            font = JBUI.Fonts.create("Monospaced", 12)
             border = null
-            isOpaque = false
         }
-
-        // Ensure proper newline handling in text area
-        System.getProperty("line.separator")?.let { separator ->
-            UIManager.put("TextArea.margin", JBUI.insets(2))
-            messageArea.document?.putProperty(DefaultEditorKit.EndOfLineStringProperty, separator)
-        }
+        
+        // Set initial content
+        MarkdownRenderer.setMarkdownContent(messageArea, message)
         
         // Create a scrollable panel for the message
         val scrollPane = JBScrollPane(messageArea).apply {
@@ -161,8 +154,7 @@ class ChatBubbleComponent(
     
     fun setText(text: String) {
         messageArea?.let { area ->
-            // Ensure text is properly handled with newlines
-            area.text = text.replace("\\n", System.getProperty("line.separator") ?: "\n")
+            MarkdownRenderer.setMarkdownContent(area, text)
             area.caretPosition = 0  // Reset scroll position to top
         }
     }

@@ -1,46 +1,22 @@
 package com.block.gooseintellij.ui.components.chat
 
 import com.block.gooseintellij.service.GooseChatService
-import com.block.gooseintellij.ui.components.common.LoadingIndicator
 import com.block.gooseintellij.utils.GooseIcons
-import com.intellij.openapi.editor.ex.EditorEx
-import com.intellij.openapi.fileEditor.FileEditorManager
+import com.block.gooseintellij.ui.components.common.LoadingIndicatorPanel
 import com.intellij.openapi.project.Project
 import com.intellij.ui.JBColor
-import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
-import java.awt.Component
-import java.awt.FlowLayout
-import javax.swing.*
-import javax.swing.BoxLayout
+import javax.swing.JPanel
+import javax.swing.SwingUtilities
 
 class ChatPanel(
     private val project: Project,
 ) : JPanel(BorderLayout()) {
     private val chatService: GooseChatService = project.getService(GooseChatService::class.java)
-    val loadingIndicator = LoadingIndicator()
+    private val messagesContainer = MessagesContainerPanel()
+    private val loadingIndicator = LoadingIndicatorPanel()
     
-    // Message container with BoxLayout for vertical stacking
-    private val messagesPanel = JPanel().apply {
-        layout = BoxLayout(this, BoxLayout.Y_AXIS)
-        background = JBColor.background()
-    }
-    
-    // Wrapper panel for loading indicator with FlowLayout for center alignment
-    private val loadingPanel = JPanel(FlowLayout(FlowLayout.CENTER)).apply {
-        isOpaque = false
-        add(loadingIndicator)
-        alignmentX = Component.LEFT_ALIGNMENT
-    }
-    
-    private val scrollPane = JBScrollPane(messagesPanel).apply {
-        verticalScrollBarPolicy = ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED
-        horizontalScrollBarPolicy = ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
-        border = JBUI.Borders.empty()
-        viewport.background = JBColor.background()
-    }
-
     private val inputPanel = ChatInputPanel(
         icon = GooseIcons.SendToGoose,
         sendAction = { message -> handleSendMessage(message) }
@@ -53,11 +29,18 @@ class ChatPanel(
         val mainPanel = JPanel(BorderLayout()).apply {
             isOpaque = true
             background = JBColor.background()
-            add(scrollPane, BorderLayout.CENTER)
+            add(messagesContainer, BorderLayout.CENTER)
             border = JBUI.Borders.empty(10)
         }
         
-        add(mainPanel, BorderLayout.CENTER)
+        val centerPanel = JPanel(BorderLayout()).apply {
+            isOpaque = true
+            background = JBColor.background()
+            add(mainPanel, BorderLayout.CENTER)
+            add(loadingIndicator, BorderLayout.SOUTH)
+        }
+        
+        add(centerPanel, BorderLayout.CENTER)
         add(inputPanel, BorderLayout.SOUTH)
         
         // Set preferred size for better initial display
@@ -82,13 +65,7 @@ class ChatPanel(
         addMessageBubble(message, true)
         
         // Show loading indicator
-        loadingIndicator.startLoading()
-        if (!messagesPanel.components.contains(loadingPanel)) {
-            messagesPanel.add(loadingPanel)
-            messagesPanel.revalidate()
-            messagesPanel.repaint()
-            scrollToBottom()
-        }
+        showLoadingIndicator()
         
         // Start streaming response
         chatService.sendMessage(
@@ -101,13 +78,10 @@ class ChatPanel(
                     SwingUtilities.invokeLater {
                         if (responseBubble == null) {
                             responseBubble = addMessageBubble(text, false)
-                            messagesPanel.revalidate()
-                            messagesPanel.repaint()
                         } else {
                             // Update with minimal repaints
                             updateLastMessageBubble(text)
                         }
-                        scrollToBottom()
                     }
                 }
                 
@@ -128,12 +102,7 @@ class ChatPanel(
                 override fun onFinish(finishReason: String, usage: Map<String, Int>) {
                     SwingUtilities.invokeLater {
                         responseBubble = null
-                        // Hide loading indicator
-                        loadingIndicator.stopLoading()
-                        messagesPanel.remove(loadingPanel)
-                        messagesPanel.revalidate()
-                        messagesPanel.repaint()
-                        scrollToBottom()
+                        hideLoadingIndicator()
                     }
                 }
             }
@@ -144,33 +113,24 @@ class ChatPanel(
     }
 
     private fun addMessageBubble(message: String, isUserMessage: Boolean): ChatBubbleComponent {
-        val wrapper = JPanel(FlowLayout(if (isUserMessage) FlowLayout.RIGHT else FlowLayout.LEFT, 0, 2)).apply {
+        val wrapper = JPanel(BorderLayout()).apply {
             isOpaque = false
-            alignmentX = Component.LEFT_ALIGNMENT
+            alignmentX = LEFT_ALIGNMENT
         }
         
         val bubble = ChatBubbleComponent(message, isUserMessage)
-        wrapper.add(bubble)
+        wrapper.add(bubble, if (isUserMessage) BorderLayout.EAST else BorderLayout.WEST)
         
-        messagesPanel.add(wrapper)
-        messagesPanel.revalidate()
-        messagesPanel.repaint()
-        scrollToBottom()
-        
+        messagesContainer.addMessageComponent(wrapper)
         return bubble
     }
     
     private fun updateLastMessageBubble(text: String) {
-        val lastComponent = messagesPanel.components.lastOrNull()
+        val lastComponent = messagesContainer.getMessagesPanel().components.lastOrNull()
         if (lastComponent is JPanel) {
             val bubble = lastComponent.components.firstOrNull { it is ChatBubbleComponent }
             if (bubble is ChatBubbleComponent) {
                 bubble.setText(text)
-                lastComponent.revalidate()
-                lastComponent.repaint()
-                messagesPanel.revalidate()
-                messagesPanel.repaint()
-                scrollToBottom()
             }
         }
     }
@@ -183,17 +143,12 @@ class ChatPanel(
         SwingUtilities.invokeLater {
             if (!isUserMessage) {
                 // Try to find the last message bubble
-                val lastComponent = messagesPanel.components.lastOrNull()
+                val lastComponent = messagesContainer.getMessagesPanel().components.lastOrNull()
                 if (lastComponent is JPanel) {
                     val bubble = lastComponent.components.firstOrNull { it is ChatBubbleComponent } as? ChatBubbleComponent
                     if (bubble != null && !bubble.isUserMessage) {
                         // Found a non-user bubble, append to it
                         bubble.setText(bubble.getText() + message)
-                        lastComponent.revalidate()
-                        lastComponent.repaint()
-                        messagesPanel.revalidate()
-                        messagesPanel.repaint()
-                        scrollToBottom()
                         return@invokeLater
                     }
                 }
@@ -202,12 +157,13 @@ class ChatPanel(
             addMessageBubble(message, isUserMessage)
         }
     }
-    
-    private fun scrollToBottom() {
-        SwingUtilities.invokeLater {
-            val vertical = scrollPane.verticalScrollBar
-            vertical.value = vertical.maximum
-        }
+
+    fun showLoadingIndicator() {
+        loadingIndicator.startLoading()
+    }
+
+    fun hideLoadingIndicator() {
+        loadingIndicator.stopLoading()
     }
 
     fun dispose() {

@@ -92,6 +92,7 @@ class AskGooseToAction : AnAction() {
         SwingUtilities.invokeLater {
           // Update the chat panel in the tool window
           chatPanelService.appendMessage(text, false)
+          chatPanelService.hideLoadingIndicator()
         }
       }
       
