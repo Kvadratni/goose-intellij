@@ -16,6 +16,7 @@ import javax.swing.border.EmptyBorder
 class ChatBubbleComponent(
     message: String,
     val isUserMessage: Boolean,
+    val filePills: Map<FilePillComponent, String>? = null,
     private val timestamp: LocalDateTime = LocalDateTime.now()
 ) : RoundedPanel(BorderLayout(), 12) {
 
@@ -115,6 +116,9 @@ class ChatBubbleComponent(
             2, 0
         )).apply {
             isOpaque = false
+            filePills?.forEach { (filePill, _) ->
+                add(filePill)
+            }
             add(timestampLabel)
         }
         

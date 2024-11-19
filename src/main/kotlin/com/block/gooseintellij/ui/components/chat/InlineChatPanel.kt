@@ -19,9 +19,8 @@ class InlineChatPanel(
     event: AnActionEvent,
     private val inlayRef: Ref<Disposable>
 ) : RoundedPanel(BorderLayout()) {
-    private var messageHandler: ((String) -> Unit)? = null
+    private var messageHandler: ((String, Map<FilePillComponent, String>?) -> Unit)? = null
     private val project = event.project!!
-    private val chatPanelService = ChatPanelService.getInstance(project)
     
     init {
         val action = object : AnAction({ "Close" }, AllIcons.Actions.Close) {
@@ -36,8 +35,8 @@ class InlineChatPanel(
             ActionToolbar.DEFAULT_MINIMUM_BUTTON_SIZE
         )
         
-        val chatInputPanel = ChatInputPanel(com.block.gooseintellij.utils.GooseIcons.SendToGooseDisabled, editor) { userInput ->
-            messageHandler?.invoke(userInput)
+        val chatInputPanel = ChatInputPanel(project, com.block.gooseintellij.utils.GooseIcons.SendToGooseDisabled, editor) { userInput, filePills ->
+            messageHandler?.invoke(userInput, filePills)
         }
 
         add(chatInputPanel, BorderLayout.CENTER)
@@ -69,13 +68,10 @@ class InlineChatPanel(
         })
     }
     
-    fun setMessageHandler(handler: (String) -> Unit) {
-        messageHandler = { userInput ->
-            // First post user message to main chat panel
-            chatPanelService.appendMessage(userInput, true)
-            chatPanelService.showLoadingIndicator()
-            // Then handle the message
-            handler(userInput)
+    fun setMessageHandler(handler: (String, Map<FilePillComponent, String>?) -> Unit) {
+        messageHandler = { userInput, _ ->
+            // Then handle the message with unique pills
+            handler(userInput, null)
             // Close the inline panel after sending
             SwingUtilities.invokeLater {
                 inlayRef.get()?.dispose()

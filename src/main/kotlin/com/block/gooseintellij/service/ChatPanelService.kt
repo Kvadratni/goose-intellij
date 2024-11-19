@@ -1,6 +1,7 @@
 package com.block.gooseintellij.service
 
 import com.block.gooseintellij.ui.components.chat.ChatPanel
+import com.block.gooseintellij.ui.components.chat.FilePillComponent
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
@@ -19,10 +20,10 @@ class ChatPanelService(private val project: Project) {
         return chatPanel!!
     }
 
-    fun appendMessage(text: String, isUserMessage: Boolean) {
+    fun appendMessage(text: String, isUserMessage: Boolean, filePills: Map<FilePillComponent, String>? = null) {
         SwingUtilities.invokeLater {
             val panel = getChatPanel()
-            panel.appendMessage(text, isUserMessage)
+            panel.appendMessage(text, isUserMessage, filePills)
             
             // Show the tool window if not visible
             val toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Goose Chat")
