@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "com.block"
-version = "1.4.0"
+version = "2.0.0EAP"
 
 repositories {
   mavenCentral()
