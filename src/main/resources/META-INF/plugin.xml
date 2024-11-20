@@ -55,6 +55,7 @@
     <projectService serviceInterface="com.block.gooseintellij.service.GooseService"
                    serviceImplementation="com.block.gooseintellij.service.impl.GooseServiceImpl"/>
     <projectService serviceImplementation="com.block.gooseintellij.state.GooseProviderSettings"/>
+    <projectService serviceImplementation="com.block.gooseintellij.state.GooseConversationState"/>
     <postStartupActivity implementation="com.block.gooseintellij.actions.GooseChatStartupActivity"/>
     <notificationGroup id="Goose Notifications" displayType="BALLOON"/>
     <toolWindow id="Goose Chat"

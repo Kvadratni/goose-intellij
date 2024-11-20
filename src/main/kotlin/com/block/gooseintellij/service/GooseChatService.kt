@@ -5,6 +5,7 @@ import com.block.gooseintellij.config.GooseChatEnvironment
 import com.block.gooseintellij.model.ChatMessage
 import com.block.gooseintellij.model.ChatRequest
 import com.block.gooseintellij.model.ChatResponse
+import com.block.gooseintellij.state.GooseConversationState
 import com.block.gooseintellij.state.GooseProviderSettings
 import com.block.gooseintellij.ui.dialog.GooseProviderDialog
 import com.block.gooseintellij.utils.PortManager
@@ -430,8 +431,18 @@ fun sendMessage(
             connection.setRequestProperty("Connection", "keep-alive")
         }
 
+        // Get conversation state
+        val conversationState = GooseConversationState.getInstance(project)
+        
+        // Add user message to conversation history
+        conversationState.addMessage("user", message)
+        
+        // Get full conversation history and convert to chat messages
+        val messages = conversationState.getConversationHistory()
+            .map { it.toChatMessage() }
+
         val chatRequest = ChatRequest(
-            messages = listOf(ChatMessage("user", message))
+            messages = messages
         )
         val jsonInput = gson.toJson(chatRequest)
 
@@ -454,23 +465,42 @@ fun sendMessage(
             var finishReason: String? = null
             var usage: Map<String, Int>? = null
             var error: String? = null
+            var currentAssistantMessage = StringBuilder()
+            var lastUpdateTime = System.currentTimeMillis()
+            val updateThreshold = 500L // Update conversation state every 500ms
 
             val parser = StreamParser()
             BufferedReader(InputStreamReader(connection.inputStream)).use { reader ->
                 reader.lineSequence().forEach { line ->
-                    if(line.isEmpty()) streamHandler?.onText(NEWLINE)
+                    if(line.isEmpty()) {
+                        streamHandler?.onText(NEWLINE)
+                        currentAssistantMessage.append(NEWLINE)
+                    }
+                    
                     val part = parser.parseLine(line)
                     when (part) {
                         is StreamPart.Text -> {
                             if(part.content.isEmpty()) {
                                 streamHandler?.onText(NEWLINE)
-                                // Only accumulate for final response
                                 responseBuilder.append(NEWLINE)
+                                currentAssistantMessage.append(NEWLINE)
+                            } else {
+                                // For streaming, send directly to handler
+                                streamHandler?.onText(part.content)
+                                // Accumulate for final response
+                                responseBuilder.append(part.content)
+                                currentAssistantMessage.append(part.content)
+                                
+                                // Update conversation state periodically to avoid too frequent updates
+                                val currentTime = System.currentTimeMillis()
+                                if (currentTime - lastUpdateTime >= updateThreshold) {
+                                    // Update conversation state with accumulated message
+                                    conversationState.addMessage("assistant", currentAssistantMessage.toString())
+                                    // Reset buffer and update timestamp
+                                    currentAssistantMessage.clear()
+                                    lastUpdateTime = currentTime
+                                }
                             }
-                            // For streaming, send directly to handler without accumulating
-                            streamHandler?.onText(part.content)
-                            // Only accumulate for final response
-                            responseBuilder.append(part.content)
                         }
                         is StreamPart.Data -> {
                             streamHandler?.onData(part.content)
@@ -478,6 +508,8 @@ fun sendMessage(
                         is StreamPart.Error -> {
                             error = part.message
                             streamHandler?.onError(part.message)
+                            // Add error message to conversation history
+                            conversationState.addMessage("assistant", "Error: ${part.message}")
                         }
                         is StreamPart.MessageAnnotation -> {
                             streamHandler?.onMessageAnnotation(part.annotation)
@@ -486,6 +518,12 @@ fun sendMessage(
                             finishReason = part.finishReason
                             usage = part.usage
                             streamHandler?.onFinish(part.finishReason, part.usage)
+                            
+                            // Add any remaining content to conversation history
+                            if (currentAssistantMessage.isNotEmpty()) {
+                                conversationState.addMessage("assistant", currentAssistantMessage.toString())
+                            }
+                            
                             parser.reset() // Reset parser state after finish
                         }
                         null -> {} // Ignore empty lines
