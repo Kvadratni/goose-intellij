@@ -2,22 +2,21 @@ package com.block.gooseintellij.service
 
 import com.block.gooseintellij.state.GooseConversationState
 import com.intellij.openapi.project.Project
-import com.intellij.testFramework.fixtures.BasePlatformTestCase
-import org.junit.Test
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.Assertions.*
 import org.mockito.Mockito.*
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.net.HttpURLConnection
-import java.net.URL
-import javax.net.ssl.HttpsURLConnection
 
-class GooseChatServiceTest : BasePlatformTestCase() {
+class GooseChatServiceTest() {
     private lateinit var gooseChatService: GooseChatService
     private lateinit var mockProject: Project
     private lateinit var mockConversationState: GooseConversationState
 
-    override fun setUp() {
-        super.setUp()
+    @BeforeEach
+    fun setUp() {
         mockProject = mock(Project::class.java)
         mockConversationState = mock(GooseConversationState::class.java)
         gooseChatService = GooseChatService(mockProject)

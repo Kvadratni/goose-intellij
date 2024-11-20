@@ -1,10 +1,9 @@
 package com.block.gooseintellij.actions
 
+import com.block.gooseintellij.state.GooseConversationState
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.ui.Messages
-import com.intellij.ide.util.PropertiesComponent
-import java.io.File
 
 class ClearCurrentSessionAction : AnAction("Clear Current Session") {
     override fun actionPerformed(event: AnActionEvent) {
@@ -17,16 +16,9 @@ class ClearCurrentSessionAction : AnAction("Clear Current Session") {
         )
 
         if (result == Messages.YES) {
-            val propertiesComponent = PropertiesComponent.getInstance(project)
-            val sessionName = propertiesComponent.getValue("goose.saved.session")
-            if (sessionName != null) {
-                val sessionFile = File(System.getProperty("user.home"), ".config/goose/sessions/$sessionName.jsonl")
-                if (sessionFile.exists()) {
-                    sessionFile.delete()
-                }
-                val startupActivity = GoosePluginStartupActivity()
-                startupActivity.reInitializeGooseTerminal(project)
-            }
+            // Clear conversation state
+            val conversationState = GooseConversationState.getInstance(project)
+            conversationState.clearCurrentConversation()
         }
     }
 }

@@ -26,8 +26,12 @@ kotlin {
 dependencies {
   implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
   implementation("org.jetbrains:markdown:0.5.0")
+  
+  // Test dependencies
   testImplementation("org.junit.jupiter:junit-jupiter:5.8.1")
   testImplementation("org.mockito:mockito-core:3.12.4")
+  testImplementation("org.mockito.kotlin:mockito-kotlin:4.0.0")
+  
   intellijPlatform {
     intellijIdeaUltimate("2024.2.3")
     pluginVerifier()

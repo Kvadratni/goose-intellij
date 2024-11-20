@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
 import org.junit.jupiter.api.Assertions.*
+import org.mockito.kotlin.mock
 
 class FilePillComponentTest {
     private lateinit var project: Project

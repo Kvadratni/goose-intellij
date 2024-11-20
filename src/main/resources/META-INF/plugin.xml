@@ -18,22 +18,11 @@
         <add-to-group group-id="ToolsMenu"/>
     </group>
 
-    <action id="com.block.gooseintellij.actions.AskGooseToGenerateTestsForFileAction"
-        class="com.block.gooseintellij.actions.AskGooseToGenerateTestsForFileAction"
-        icon="com.block.gooseintellij.utils.GooseIcons.GooseMenu"
-        text="Ask Goose to Generate Tests for File">
-      <add-to-group group-id="ProjectViewPopupMenu" anchor="after"  relative-to-action="com.block.gooseintellij.actions.AskGooseToFile"/>
-    </action>
     <action id="com.block.gooseintellij.actions.AskGooseToFile"
         class="com.block.gooseintellij.actions.AskGooseToAction"
         text="Ask Goose To ..." icon="com.block.gooseintellij.utils.GooseIcons.GooseMenu">
       <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
       <keyboard-shortcut keymap="$default" first-keystroke="alt G" />
-    </action>
-    <action id="com.block.gooseintellij.actions.AskGooseToGenerateTestsAction"
-        class="com.block.gooseintellij.actions.AskGooseToGenerateTestsAction"
-        text="Ask Goose to Generate Tests" icon="com.block.gooseintellij.utils.GooseIcons.GooseMenu">
-      <add-to-group group-id="EditorPopupMenu" anchor="last"/>
     </action>
 
     <action id="com.block.gooseintellij.actions.AskGooseTo"

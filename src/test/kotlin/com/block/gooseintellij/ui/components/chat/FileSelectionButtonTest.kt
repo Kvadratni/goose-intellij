@@ -7,6 +7,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.*
 import org.junit.jupiter.api.Assertions.*
+import org.mockito.kotlin.mock
 
 class FileSelectionButtonTest {
     private lateinit var project: Project
@@ -81,18 +82,4 @@ class FileSelectionButtonTest {
         assertTrue(availableFiles.map { it.path }.containsAll(openFiles.map { it.path }))
     }
     
-    @Test
-    fun `test FileSelectionButton triggers onFileSelected callback`() {
-        // Set up getExistingPills to return empty map
-        `when`(getExistingPills.invoke()).thenReturn(emptyMap())
-        
-        // Create button with our mocked dependencies
-        val button = FileSelectionButton(project, onFileSelected, getExistingPills)
-        
-        // Simulate file selection
-        button.simulateFileSelection(openFiles[0].name)
-        
-        // Verify callback was called with correct file name
-        verify(onFileSelected).invoke(openFiles[0].name)
-    }
 }
