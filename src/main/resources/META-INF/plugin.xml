@@ -40,6 +40,7 @@
         class="com.block.gooseintellij.actions.AskGooseToAction"
         text="Ask goose to ..." icon="com.block.gooseintellij.utils.GooseIcons.GooseMenu">
       <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+      <add-to-group group-id="EditorTabPopupMenu" anchor="last"/>
       <keyboard-shortcut keymap="$default" first-keystroke="alt G" />
     </action>
   </actions>
