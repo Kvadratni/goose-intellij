@@ -1,6 +1,7 @@
 package com.block.gooseintellij.ui.components.chat
 
 import com.block.gooseintellij.service.GooseChatService
+import com.block.gooseintellij.service.StreamHandler
 import com.block.gooseintellij.utils.GooseIcons
 import com.block.gooseintellij.ui.components.common.LoadingIndicatorPanel
 import com.intellij.openapi.project.Project
@@ -57,9 +58,9 @@ class ChatPanel(
           isOpaque = true
           background = JBColor.background()
           border = JBUI.Borders.customLine(JBColor.border(), 1, 0, 0, 0)  // Top border as separator
-          add(FileSelectionButton(project, { fileName ->
+          add(FileSelectionButton(project, { file ->
             // When a file is selected, append it to the input
-            inputPanel.appendFileTag(fileName)
+            inputPanel.appendFileTag(file)
           },
             { inputPanel.getFilePills() }
           ))
@@ -112,15 +113,17 @@ class ChatPanel(
     chatService.sendMessage(
       message = messageWithContext,
       streaming = true,
-      streamHandler = object : GooseChatService.StreamHandler {
+      streamHandler = object : StreamHandler {
         private var responseBubble: ChatBubbleComponent? = null
 
         override fun onText(text: String) {
-          if (responseBubble == null) {
-            responseBubble = addMessageBubble(text, false)
-          } else {
-            // Update with minimal repaints
-            responseBubble?.setText(text, append = true)
+          SwingUtilities.invokeLater {
+            if (responseBubble == null) {
+              responseBubble = addMessageBubble(text, false)
+            } else {
+              // Update with minimal repaints
+              responseBubble?.setText(text, append = true)
+            }
           }
         }
 
@@ -136,6 +139,28 @@ class ChatPanel(
 
         override fun onMessageAnnotation(annotation: Map<String, Any>) {
           // Handle annotations if needed
+        }
+
+        override fun onToolCallDelta(toolCallId: String, argsTextDelta: String) {
+          SwingUtilities.invokeLater {
+            responseBubble?.setText(argsTextDelta, append = true)
+          }
+        }
+
+        override fun onToolCall(toolCallId: String, toolName: String, args: Map<String, Any>) {
+          SwingUtilities.invokeLater {
+            if (responseBubble == null) {
+              responseBubble = addMessageBubble("🛠️ Calling tool: $toolName", false)
+            } else {
+              responseBubble?.setText("\n\n🛠️ Calling tool: $toolName", append = true)
+            }
+          }
+        }
+
+        override fun onToolResult(toolCallId: String, result: Any) {
+          SwingUtilities.invokeLater {
+            responseBubble?.setText("\n✅ Tool result: $result\n", append = true)
+          }
         }
 
         override fun onFinish(finishReason: String, usage: Map<String, Int>) {

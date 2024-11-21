@@ -12,7 +12,7 @@ import org.mockito.kotlin.mock
 class FileSelectionButtonTest {
     private lateinit var project: Project
     private lateinit var fileEditorManager: FileEditorManager
-    private lateinit var onFileSelected: (String) -> Unit
+    private lateinit var onFileSelected: (VirtualFile) -> Unit
     private lateinit var getExistingPills: () -> Map<FilePillComponent, String>
     private lateinit var openFiles: Array<VirtualFile>
     

@@ -8,6 +8,7 @@ import com.block.gooseintellij.viewmodel.ChatViewModel
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.project.BaseProjectDirectories.Companion.getBaseDirectories
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.IdeBorderFactory
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBScrollPane
@@ -180,16 +181,9 @@ class ChatInputPanel(
     parent?.repaint()
   }
 
-  fun appendFileTag(fileName: String) {
-    // Find the virtual file by name
-    val virtualFile = project.getBaseDirectories().stream()
-      .map { it.findFileByRelativePath(fileName) }
-      .filter { it != null }
-      .findFirst()
-      .orElse(null)
-
+  fun appendFileTag(virtualFile: VirtualFile) {
     // Create a new pill component with close button
-    val pill = FilePillComponent(project, virtualFile!!, showCloseButton = true) {
+    val pill = FilePillComponent(project, virtualFile, showCloseButton = true) {
       // Remove the pill from the panel
       val pill = filePills.entries.find { (pill, filepath) -> pill.file.name == it }?.key
       filePills.remove(pill)

@@ -27,6 +27,9 @@ import java.net.URI
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
+import com.block.gooseintellij.service.parser.StreamParser
+import com.block.gooseintellij.service.parser.StreamParser.StreamPart
+import javax.swing.SwingUtilities
 
 private const val NEWLINE = "\\n"
 
@@ -215,337 +218,161 @@ class GooseChatService(private val project: Project) : Disposable {
         }
     }
 
-    // Data classes for stream protocol
-sealed class StreamPart {
-    data class Text(val content: String) : StreamPart()
-    data class Data(val content: List<Any>) : StreamPart()
-    data class Error(val message: String) : StreamPart()
-    data class MessageAnnotation(val annotation: Map<String, Any>) : StreamPart()
-    data class FinishMessage(
-        val finishReason: String,
-        val usage: Map<String, Int>
-    ) : StreamPart()
-}
-
-interface StreamHandler {
-    fun onText(text: String)
-    fun onData(data: List<Any>)
-    fun onError(error: String)
-    fun onMessageAnnotation(annotation: Map<String, Any>)
-    fun onFinish(finishReason: String, usage: Map<String, Int>)
-}
-
-// Class to maintain stream parsing state using a state machine approach
-internal class StreamParser {
-    private enum class State {
-        EXPECT_TYPE,      // Expecting a new type identifier or continuation of current type
-        IN_TEXT_CONTENT,  // Processing text content (with or without type identifier)
-        IN_JSON_CONTENT   // Processing JSON content for data/finish messages
-    }
-
-    private var state = State.EXPECT_TYPE
-    private var currentType: String? = null
-    private var textBuffer = StringBuilder()
-    private var jsonBuffer = StringBuilder()
-    private val gson = Gson()
-
-    companion object {
-        private val TYPE_PATTERN = Regex("^([0-9d]):")
-        private val ESCAPE_PATTERN = Regex("""\\[nrt"]""")
-    }
-
-    fun parseLine(line: String): StreamPart? {
-        if (line.isEmpty()) {
-            return when (state) {
-                State.IN_TEXT_CONTENT -> {
-                    textBuffer.append('\n')
-                    StreamPart.Text(textBuffer.toString())
-                }
-                State.IN_JSON_CONTENT -> {
-                    jsonBuffer.append('\n')
-                    null
-                }
-                else -> null
+    fun sendMessage(
+        message: String,
+        streaming: Boolean = false,
+        streamHandler: StreamHandler? = null
+    ): CompletableFuture<ChatResponse> {
+        return CompletableFuture.supplyAsync {
+            if (selectedPort == -1) {
+                throw IllegalStateException("Goosed process not started - no port selected")
             }
-        }
 
-        // Check for new message type
-        val typeMatch = TYPE_PATTERN.find(line)
-        if (typeMatch != null) {
-            val newType = typeMatch.groupValues[1]
-            val content = line.substring(typeMatch.value.length)
+            val connection = URI("http://${GooseChatEnvironment.host}:$selectedPort/reply").toURL()
+                .openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"
+            connection.doOutput = true
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.connectTimeout = GooseChatEnvironment.timeoutMs.toInt()
+            connection.readTimeout = GooseChatEnvironment.timeoutMs.toInt()
             
-            // Reset buffers on type change
-            if (newType != currentType) {
-                textBuffer.clear()
-                jsonBuffer.clear()
+            // Add stream protocol headers if streaming
+            if (streaming) {
+                connection.setRequestProperty("x-vercel-ai-data-stream", "v1")
+                connection.setRequestProperty("Accept", "text/event-stream")
+                connection.setRequestProperty("Cache-Control", "no-cache")
+                connection.setRequestProperty("Connection", "keep-alive")
             }
+
+            // Get conversation state
+            val conversationState = GooseConversationState.getInstance(project)
             
-            currentType = newType
-            return when (newType) {
-                "0" -> {
-                    state = State.IN_TEXT_CONTENT
-                    handleTextContent(content, true)
-                }
-                "2" -> {
-                    state = State.IN_JSON_CONTENT
-                    jsonBuffer.append(content)
-                    tryParseJson()
-                }
-                "3" -> {
-                    state = State.EXPECT_TYPE
-                    StreamPart.Error(content.trim('"'))
-                }
-                "8" -> {
-                    state = State.IN_JSON_CONTENT
-                    jsonBuffer.append(content)
-                    tryParseJson()
-                }
-                "d" -> {
-                    state = State.IN_JSON_CONTENT
-                    jsonBuffer.append(content)
-                    tryParseJson()
-                }
-                else -> null
-            }
-        }
-        
-        // Handle content continuation
-        return when (state) {
-            State.IN_TEXT_CONTENT -> handleTextContent(line)
-            State.IN_JSON_CONTENT -> {
-                jsonBuffer.append(line)
-                tryParseJson()
-            }
-            else -> null
-        }
-    }
-
-    private fun handleTextContent(text: String, isNewType: Boolean = false): StreamPart {
-        // First handle escaped characters
-        val unescaped = if (text.contains(ESCAPE_PATTERN)) {
-            text.replace(NEWLINE, "\n")
-                .replace("\\r", "\r")
-                .replace("\\t", "\t")
-                .replace("\\\"", "\"")
-        } else {
-            text
-        }
-
-        // Handle wrapping quotes
-        var unwrapped = when {
-            // Handle empty message with quotes ("""" -> "")
-            unescaped.matches(Regex("^\"*$")) -> {
-                val quoteCount = unescaped.count { it == '"' }
-                "\"".repeat(quoteCount / 2)
-            }
-            // Handle wrapped quotes while preserving internal quotes
-            unescaped.startsWith("\"") && unescaped.endsWith("\"") -> {
-                var result = unescaped
-                while (result.length >= 2 && result.startsWith("\"") && result.endsWith("\"")) {
-                    // Only unwrap if we have matching outer quotes
-                    val innerContent = result.substring(1, result.length - 1)
-                    // Stop if removing more quotes would affect internal quoted content
-                    if (innerContent.count { it == '"' } % 2 != 0) break
-                    result = innerContent
-                }
-                result
-            }
-            else -> unescaped
-        }
-        if (unwrapped == "\"") {
-            unwrapped = "\n"
-        }
-
-        if (isNewType) {
-            // For new type messages, clear buffer and set new content
-            textBuffer.setLength(0)
-            textBuffer.append(unwrapped)
-            return StreamPart.Text(unwrapped)
-        } else {
-            // For continuations, append with newline and return full buffer
-            textBuffer.append('\n').append(unwrapped)
-            return StreamPart.Text(textBuffer.toString())
-        }
-    }
-
-    private fun tryParseJson(): StreamPart? {
-        try {
-            when (currentType) {
-                "2" -> {
-                    state = State.EXPECT_TYPE
-                    return StreamPart.Data(gson.fromJson(jsonBuffer.toString(), Array<Any>::class.java).toList())
-                }
-                "8" -> {
-                    state = State.EXPECT_TYPE
-                    return StreamPart.MessageAnnotation(gson.fromJson(jsonBuffer.toString(), Map::class.java) as Map<String, Any>)
-                }
-                "d" -> {
-                    state = State.EXPECT_TYPE
-                    val finishData = gson.fromJson(jsonBuffer.toString(), Map::class.java) as Map<String, Any>
-                    return StreamPart.FinishMessage(
-                        finishReason = finishData["finishReason"] as String,
-                        usage = finishData["usage"] as Map<String, Int>
-                    )
-                }
-            }
-        } catch (e: com.google.gson.JsonSyntaxException) {
-            // If JSON is incomplete, continue accumulating
-            return null
-        }
-        return null
-    }
-
-    fun reset() {
-        state = State.EXPECT_TYPE
-        currentType = null
-        textBuffer.clear()
-        jsonBuffer.clear()
-    }
-}
-
-fun sendMessage(
-    message: String,
-    streaming: Boolean = false,
-    streamHandler: StreamHandler? = null
-): CompletableFuture<ChatResponse> {
-    return CompletableFuture.supplyAsync {
-        if (selectedPort == -1) {
-            throw IllegalStateException("Goosed process not started - no port selected")
-        }
-
-        val connection = URI("http://${GooseChatEnvironment.host}:$selectedPort/reply").toURL()
-            .openConnection() as HttpURLConnection
-        connection.requestMethod = "POST"
-        connection.doOutput = true
-        connection.setRequestProperty("Content-Type", "application/json")
-        connection.connectTimeout = GooseChatEnvironment.timeoutMs.toInt()
-        connection.readTimeout = GooseChatEnvironment.timeoutMs.toInt()
-        
-        // Add stream protocol headers if streaming
-        if (streaming) {
-            connection.setRequestProperty("x-vercel-ai-data-stream", "v1")
-            connection.setRequestProperty("Accept", "text/event-stream")
-            connection.setRequestProperty("Cache-Control", "no-cache")
-            connection.setRequestProperty("Connection", "keep-alive")
-        }
-
-        // Get conversation state
-        val conversationState = GooseConversationState.getInstance(project)
-        
-        // Add user message to conversation history
-        conversationState.addMessage("user", message)
-        
-        // Get full conversation history and convert to chat messages
-        val messages = conversationState.getConversationHistory()
-            .map { it.toChatMessage() }
-
-        val chatRequest = ChatRequest(
-            messages = messages
-        )
-        val jsonInput = gson.toJson(chatRequest)
-
-        try {
-            OutputStreamWriter(connection.outputStream).use { writer ->
-                writer.write(jsonInput)
-                writer.flush()
-            }
-
-            if (!streaming) {
-                // Non-streaming mode - return full response
-                BufferedReader(InputStreamReader(connection.inputStream)).use { reader ->
-                    val response = reader.readText()
-                    return@supplyAsync gson.fromJson(response, ChatResponse::class.java)
-                }
-            }
+            // Add user message to conversation history
+            conversationState.addMessage("user", message)
             
-            // Streaming mode
-            var responseBuilder = StringBuilder()
-            var finishReason: String? = null
-            var usage: Map<String, Int>? = null
-            var error: String? = null
-            var currentAssistantMessage = StringBuilder()
-            var lastUpdateTime = System.currentTimeMillis()
-            val updateThreshold = 500L // Update conversation state every 500ms
+            // Get full conversation history and convert to chat messages
+            val messages = conversationState.getConversationHistory()
+                .map { it.toChatMessage() }
 
-            val parser = StreamParser()
-            BufferedReader(InputStreamReader(connection.inputStream)).use { reader ->
-                reader.lineSequence().forEach { line ->
-                    if(line.isEmpty()) {
-                        streamHandler?.onText(NEWLINE)
-                        currentAssistantMessage.append(NEWLINE)
+            val chatRequest = ChatRequest(
+                messages = messages
+            )
+            val jsonInput = gson.toJson(chatRequest)
+
+            try {
+                OutputStreamWriter(connection.outputStream).use { writer ->
+                    writer.write(jsonInput)
+                    writer.flush()
+                }
+
+                if (!streaming) {
+                    // Non-streaming mode - return full response
+                    BufferedReader(InputStreamReader(connection.inputStream)).use { reader ->
+                        val response = reader.readText()
+                        return@supplyAsync gson.fromJson(response, ChatResponse::class.java)
                     }
-                    
-                    val part = parser.parseLine(line)
-                    when (part) {
-                        is StreamPart.Text -> {
-                            if(part.content.isEmpty()) {
-                                streamHandler?.onText(NEWLINE)
-                                responseBuilder.append(NEWLINE)
-                                currentAssistantMessage.append(NEWLINE)
-                            } else {
-                                // For streaming, send directly to handler
-                                streamHandler?.onText(part.content)
-                                // Accumulate for final response
-                                responseBuilder.append(part.content)
-                                currentAssistantMessage.append(part.content)
-                                
-                                // Update conversation state periodically to avoid too frequent updates
-                                val currentTime = System.currentTimeMillis()
-                                if (currentTime - lastUpdateTime >= updateThreshold) {
-                                    // Update conversation state with accumulated message
-                                    conversationState.addMessage("assistant", currentAssistantMessage.toString())
-                                    // Reset buffer and update timestamp
-                                    currentAssistantMessage.clear()
-                                    lastUpdateTime = currentTime
+                }
+                
+                // Streaming mode
+                var responseBuilder = StringBuilder()
+                var finishReason: String? = null
+                var usage: Map<String, Int>? = null
+                var error: String? = null
+                var currentAssistantMessage = StringBuilder()
+                var lastUpdateTime = System.currentTimeMillis()
+                val updateThreshold = 500L // Update conversation state every 500ms
+
+                val parser = StreamParser()
+                BufferedReader(InputStreamReader(connection.inputStream)).use { reader ->
+                    reader.lineSequence().forEach { line ->
+                        if(line.isEmpty()) {
+                            streamHandler?.onText(NEWLINE)
+                            currentAssistantMessage.append(NEWLINE)
+                        }
+                        
+                        val part = parser.parseLine(line)
+                        when (part) {
+                            is StreamPart.Text -> {
+                                if(part.content.isEmpty()) {
+                                    streamHandler?.onText(NEWLINE)
+                                    responseBuilder.append(NEWLINE)
+                                    currentAssistantMessage.append(NEWLINE)
+                                } else {
+                                    // For streaming, send directly to handler
+                                    streamHandler?.onText(part.content)
+                                    // Accumulate for final response
+                                    responseBuilder.append(part.content)
+                                    currentAssistantMessage.append(part.content)
+                                    
+                                    // Update conversation state periodically to avoid too frequent updates
+                                    val currentTime = System.currentTimeMillis()
+                                    if (currentTime - lastUpdateTime >= updateThreshold) {
+                                        // Update conversation state with accumulated message
+                                        conversationState.addMessage("assistant", currentAssistantMessage.toString())
+                                        // Reset buffer and update timestamp
+                                        currentAssistantMessage.clear()
+                                        lastUpdateTime = currentTime
+                                    }
                                 }
                             }
-                        }
-                        is StreamPart.Data -> {
-                            streamHandler?.onData(part.content)
-                        }
-                        is StreamPart.Error -> {
-                            error = part.message
-                            streamHandler?.onError(part.message)
-                            // Add error message to conversation history
-                            conversationState.addMessage("assistant", "Error: ${part.message}")
-                        }
-                        is StreamPart.MessageAnnotation -> {
-                            streamHandler?.onMessageAnnotation(part.annotation)
-                        }
-                        is StreamPart.FinishMessage -> {
-                            finishReason = part.finishReason
-                            usage = part.usage
-                            streamHandler?.onFinish(part.finishReason, part.usage)
-                            
-                            // Add any remaining content to conversation history
-                            if (currentAssistantMessage.isNotEmpty()) {
-                                conversationState.addMessage("assistant", currentAssistantMessage.toString())
+                            is StreamPart.Data -> {
+                                streamHandler?.onData(part.content)
                             }
-                            
-                            parser.reset() // Reset parser state after finish
+                            is StreamPart.Error -> {
+                                error = part.message
+                                streamHandler?.onError(part.message)
+                                // Add error message to conversation history
+                                conversationState.addMessage("assistant", "Error: ${part.message}")
+                            }
+                            is StreamPart.MessageAnnotation -> {
+                                streamHandler?.onMessageAnnotation(part.annotation)
+                            }
+                            is StreamPart.FinishMessage -> {
+                                finishReason = part.finishReason
+                                usage = part.usage
+                                streamHandler?.onFinish(part.finishReason, part.usage)
+                                
+                                // Add any remaining content to conversation history
+                                if (currentAssistantMessage.isNotEmpty()) {
+                                    conversationState.addMessage("assistant", currentAssistantMessage.toString())
+                                }
+                                
+                                parser.reset() // Reset parser state after finish
+                            }
+                            null -> {} // Ignore empty lines
+                            is StreamPart.FinishStep -> TODO()
+                            is StreamPart.ToolCall -> {
+                                streamHandler?.onToolCall(part.toolCallId, part.toolName, part.args)
+                            }
+                            is StreamPart.ToolCallDelta -> {
+                                streamHandler?.onToolCallDelta(part.toolCallId, part.argsTextDelta)
+                            }
+                            is StreamPart.ToolCallStreamStart -> {
+                                streamHandler?.onToolCallStart(part.toolCallId, part.toolName)
+                            }
+                            is StreamPart.ToolResult -> {
+                                streamHandler?.onToolResult(part.toolCallId, part.result)
+                            }
                         }
-                        null -> {} // Ignore empty lines
                     }
                 }
+
+                // Return final response with accumulated text
+                ChatResponse(
+                    message = ChatMessage("assistant", responseBuilder.toString()),
+                    finishReason = finishReason,
+                    usage = usage,
+                    error = error
+                )
+
+            } catch (e: Exception) {
+                logger.error("Failed to send message", e)
+                ChatResponse(
+                    message = ChatMessage("assistant", "Error: Failed to communicate with server"),
+                    error = e.message
+                )
             }
-
-            // Return final response with accumulated text
-            ChatResponse(
-                message = ChatMessage("assistant", responseBuilder.toString()),
-                finishReason = finishReason,
-                usage = usage,
-                error = error
-            )
-
-        } catch (e: Exception) {
-            logger.error("Failed to send message", e)
-            ChatResponse(
-                message = ChatMessage("assistant", "Error: Failed to communicate with server"),
-                error = e.message
-            )
         }
-    }
     }
 
     fun stopGoosedProcess() {

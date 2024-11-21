@@ -20,7 +20,7 @@ import javax.swing.JPanel
 
 class FileSelectionButton(
   private val project: Project,
-  private val onFileSelected: (String) -> Unit,
+  private val onFileSelected: (VirtualFile) -> Unit,
   private val getExistingPills: () -> Map<FilePillComponent, String> = { emptyMap() }
 ) : JPanel() {
   private var popup: JBPopup? = null
@@ -110,8 +110,8 @@ class FileSelectionButton(
           add(Box.createVerticalStrut(4))
         }
 
-        add(FilePillComponent(project, file) { fileName ->
-          onFileSelected(fileName)
+        add(FilePillComponent(project, file) { _ ->
+          onFileSelected(file)
           popup!!.closeOk(null)
         })
       }

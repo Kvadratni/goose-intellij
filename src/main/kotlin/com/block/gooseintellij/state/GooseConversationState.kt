@@ -23,7 +23,12 @@ class GooseConversationState : PersistentStateComponent<GooseConversationState.S
         val messages: MutableList<ConversationMessage> = mutableListOf(),
         val createdAt: Long = Instant.now().epochSecond,
         var updatedAt: Long = Instant.now().epochSecond
-    )
+    ) {
+        // Secondary no-arg constructor for serialization
+        constructor() : this(
+            id = java.util.UUID.randomUUID().toString()
+        )
+    }
 
     data class State(
         var currentConversationId: String? = null,

@@ -84,9 +84,6 @@ class ChatInputPanelTest {
         
         // Simulate the key press
         inputField.dispatchEvent(shiftEnterEvent)
-        
-        // Note: In a real test environment, we'd need to wait for event processing
-        // For this test, we're just verifying the binding exists and maps correctly
     }
     
     @Test
@@ -97,7 +94,7 @@ class ChatInputPanelTest {
         }.get(chatInputPanel))
         
         // Add a file pill
-        chatInputPanel.appendFileTag("test.kt")
+        chatInputPanel.appendFileTag(virtualFile)
         
         // File pill panel should now be visible
         assertNotNull(chatInputPanel.javaClass.getDeclaredField("filePillPanel").apply {
@@ -113,7 +110,7 @@ class ChatInputPanelTest {
     @Test
     fun `test file pill map integration`() {
         // Add multiple files
-        chatInputPanel.appendFileTag("test.kt")
+        chatInputPanel.appendFileTag(virtualFile)
         
         // Create second virtual file mock
         val virtualFile2 = mock(VirtualFile::class.java)
@@ -128,7 +125,7 @@ class ChatInputPanelTest {
         assertTrue(filePills.values.contains("/test/path/test.kt"))
         
         // Try to add the same file again (should not duplicate)
-        chatInputPanel.appendFileTag("test.kt")
+        chatInputPanel.appendFileTag(virtualFile)
         filePills = chatInputPanel.getFilePills()
         assertEquals(1, filePills.size)
         
@@ -139,7 +136,7 @@ class ChatInputPanelTest {
     @Test
     fun `test pill removal and cleanup`() {
         // Add a file pill
-        chatInputPanel.appendFileTag("test.kt")
+        chatInputPanel.appendFileTag(virtualFile)
         
         // Get the pill component and trigger removal
         val filePills = chatInputPanel.getFilePills()

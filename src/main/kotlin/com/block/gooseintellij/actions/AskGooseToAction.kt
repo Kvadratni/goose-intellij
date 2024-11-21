@@ -2,6 +2,7 @@ package com.block.gooseintellij.actions
 
 import com.block.gooseintellij.service.GooseChatService
 import com.block.gooseintellij.service.ChatPanelService
+import com.block.gooseintellij.service.StreamHandler
 import com.block.gooseintellij.ui.components.editor.EditorComponentInlaysManager
 import com.block.gooseintellij.ui.components.chat.InlineChatPanel
 import com.block.gooseintellij.ui.components.chat.FilePillComponent
@@ -131,10 +132,10 @@ class AskGooseToAction : AnAction() {
     return if (contextBuilder.isNotEmpty()) "$userInput\n\n${contextBuilder.toString()}" else userInput
   }
 
-  private fun createFileViewStreamHandler(project: Project): GooseChatService.StreamHandler {
+  private fun createFileViewStreamHandler(project: Project): StreamHandler {
     val chatPanelService = ChatPanelService.getInstance(project)
     
-    return object : GooseChatService.StreamHandler {
+    return object : StreamHandler {
       override fun onText(text: String) {
         SwingUtilities.invokeLater {
           // Update the chat panel in the tool window
@@ -156,6 +157,24 @@ class AskGooseToAction : AnAction() {
       
       override fun onMessageAnnotation(annotation: Map<String, Any>) {
         // Handle annotations if needed
+      }
+      
+      override fun onToolCallDelta(toolCallId: String, argsTextDelta: String) {
+        SwingUtilities.invokeLater {
+          chatPanelService.appendMessage(argsTextDelta, false)
+        }
+      }
+      
+      override fun onToolCall(toolCallId: String, toolName: String, args: Map<String, Any>) {
+        SwingUtilities.invokeLater {
+          chatPanelService.appendMessage("\n🛠️ Calling tool: $toolName", false)
+        }
+      }
+      
+      override fun onToolResult(toolCallId: String, result: Any) {
+        SwingUtilities.invokeLater {
+          chatPanelService.appendMessage("\n✅ Tool result: $result\n", false)
+        }
       }
       
       override fun onFinish(finishReason: String, usage: Map<String, Int>) {
