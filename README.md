@@ -1,3 +1,5 @@
+# ❗Project is being wound down and is not actively maintained
+
 # Goose IntelliJ Plugin
 
 ## Overview
